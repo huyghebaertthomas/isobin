@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { defaultConfig, getAt } from "../src/core.js";
+import { buildScene, defaultConfig, getAt, resolveConfig } from "../src/core.js";
 import { controls, surfaceFields } from "../demo/src/config/controls.js";
 import { demo } from "../demo/src/config/demo.js";
+import { stock, wall } from "../demo/src/config/parts.js";
 
 /** the panel edits the config plus the demo's own branches, all by path */
 const settings = { ...defaultConfig, demo };
@@ -48,4 +49,13 @@ test("the demo's own branch stays the demo's own", () => {
 
 test("the materials section generates its rows from the surfaces", () => {
   assert.ok(controls.some((section) => section.surfaces));
+});
+
+test("the bench's stock table and its wall agree on what bins exist", () => {
+  // the bench keys highlights and labels off `stock`, so a name in one and not
+  // the other is a bin that never lights up, or a flag aimed at nothing — the
+  // exact drift a real inventory system has against a real shelf
+  const built = buildScene(resolveConfig(wall)).bins.map((bin) => bin.id);
+
+  assert.deepEqual(Object.keys(stock).sort(), [...built].sort());
 });

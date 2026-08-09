@@ -94,6 +94,12 @@ export function Playground() {
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-neutral-400">
             {ui.caption(counts)}
           </p>
+          <a
+            href="#bench"
+            className="font-mono text-[10px] uppercase tracking-[0.14em] text-neutral-400 hover:text-neutral-900 transition-colors"
+          >
+            {ui.panel.bench}
+          </a>
           {panelOpen ? null : (
             <button
               onClick={() => setPanelOpen(true)}

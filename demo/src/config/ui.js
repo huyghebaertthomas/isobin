@@ -19,5 +19,6 @@ export const ui = {
     copyHint: "Copy the changes as an override object for <Isobin config={…} />",
     styles: "Style",
     surfaces: "Surfaces",
+    bench: "Bench",
   },
 };
