@@ -1,6 +1,6 @@
 {
   "name": "isobin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Isometric SVG drawings of bin-wall storage, built from a config object",
   "keywords": [
     "isometric",
