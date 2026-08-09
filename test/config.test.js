@@ -1,13 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { defaultConfig } from "../src/config/index.js";
-import { controls, surfaceFields } from "../src/config/controls.js";
-import { deepMerge, diff } from "../src/lib/merge.js";
-import { getAt, setAt } from "../src/lib/path.js";
-import { darken } from "../src/lib/color.js";
-import { activeStyle, restyle, styleBranches, stylePreview } from "../src/lib/styles.js";
-import { resolveMaterials } from "../src/render/materials.js";
+import {
+  activeStyle,
+  darken,
+  deepMerge,
+  defaultConfig,
+  diff,
+  getAt,
+  resolveConfig,
+  resolveMaterials,
+  restyle,
+  setAt,
+  styleBranches,
+  styleNames,
+  styles,
+} from "../src/core.js";
 
 test("paths read and write anywhere in the config, arrays included", () => {
   assert.equal(getAt(defaultConfig, "view.padding.top"), defaultConfig.view.padding.top);
@@ -37,34 +45,32 @@ test("the copied patch is the smallest override that reproduces the edits", () =
   assert.equal(diff(defaultConfig, defaultConfig), undefined, "no edits, no patch");
 });
 
-test("every control points at something the config actually has", () => {
-  const fields = [
-    ...controls.flatMap((section) => section.fields),
-    ...defaultConfig.appearance.surfaces.flatMap((_, index) => surfaceFields(index)),
-  ];
+test("a merge keeps the identity of every branch it did not change", () => {
+  // the whole of memoisation downstream rests on this: an edit to one branch
+  // has to leave the other five the very same objects, or every bin rebuilds
+  const edited = setAt(defaultConfig, "appearance.background", "#eeeeee");
+  const merged = deepMerge(defaultConfig, edited);
 
-  for (const field of fields) {
-    assert.notEqual(getAt(defaultConfig, field.path), undefined, `${field.path} is missing`);
-    if (field.enabledWhen) {
-      assert.notEqual(
-        getAt(defaultConfig, field.enabledWhen),
-        undefined,
-        `${field.path} is gated on the missing ${field.enabledWhen}`
-      );
-    }
-  }
+  assert.equal(merged.layout, defaultConfig.layout, "layout survives a repaint");
+  assert.equal(merged.hardware, defaultConfig.hardware);
+  assert.equal(merged.binTypes, defaultConfig.binTypes);
+  assert.equal(merged.view, defaultConfig.view);
+  assert.notEqual(merged.appearance, defaultConfig.appearance, "and the touched one did change");
+
+  // a patch that asks for what is already there is not a change at all
+  assert.equal(deepMerge(defaultConfig, { view: { scale: defaultConfig.view.scale } }), defaultConfig);
+  assert.equal(resolveConfig({}), defaultConfig, "an empty override resolves to the defaults");
 });
 
-test("the materials section covers every surface the renderer asks for", () => {
+test("the surfaces are exactly the six the renderer asks for", () => {
   const keys = defaultConfig.appearance.surfaces.map((surface) => surface.key);
   assert.deepEqual(keys, ["table", "cabinet", "shelf", "bin", "binInterior", "divider"]);
-  assert.ok(controls.some((section) => section.surfaces));
 });
 
 test("every style is an override the renderer can actually paint", () => {
-  const { styles } = defaultConfig;
   assert.ok(styles.length > 1);
   assert.equal(new Set(styles.map((s) => s.key)).size, styles.length, "keys are unique");
+  assert.deepEqual(styleNames, styles.map((s) => s.key));
 
   const wanted = defaultConfig.appearance.surfaces.map((surface) => surface.key);
 
@@ -78,14 +84,28 @@ test("every style is an override the renderer can actually paint", () => {
         assert.match(face.fill, /^#[0-9a-f]{6}$/i, `${style.key}/${key}/${direction}`);
       }
     }
-
-    const preview = stylePreview(style, defaultConfig);
-    for (const swatch of Object.values(preview)) assert.match(swatch, /^#[0-9a-f]{6}$/i);
   }
 });
 
+test("a style can be named in the config, and your own overrides win over it", () => {
+  for (const name of styleNames) {
+    const wanted = styles.find((style) => style.key === name);
+    assert.equal(diff(resolveConfig({ style: name }).appearance, deepMerge(defaultConfig, wanted.patch).appearance), undefined);
+  }
+
+  // the style goes on first so a correction on top of it survives
+  const corrected = resolveConfig({ style: "blueprint", appearance: { background: "#000000" } });
+  assert.equal(corrected.appearance.background, "#000000");
+  assert.equal(
+    corrected.appearance.surfaces[1].fill,
+    deepMerge(defaultConfig, styles.find((s) => s.key === "blueprint").patch).appearance.surfaces[1].fill,
+    "and the rest of the style is still there"
+  );
+
+  assert.throws(() => resolveConfig({ style: "chartreuse" }), /Unknown style/);
+});
+
 test("switching style leaves nothing of the last one behind", () => {
-  const { styles } = defaultConfig;
   const branches = styleBranches(styles);
   const pick = (settings, key) =>
     restyle(settings, defaultConfig, branches, styles.find((s) => s.key === key).patch);

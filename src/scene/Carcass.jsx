@@ -1,5 +1,5 @@
-import { cuboidEdges, cuboidFaces } from "../../lib/cuboid.js";
-import { useProjection } from "../../render/ProjectionContext.jsx";
+import { cuboidEdges, cuboidFaces } from "../lib/cuboid.js";
+import { useProjection } from "../render/ProjectionContext.jsx";
 import { Edges } from "./Edges.jsx";
 import { Face } from "./Face.jsx";
 

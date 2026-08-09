@@ -1,4 +1,4 @@
-import { useProjection } from "../../render/ProjectionContext.jsx";
+import { useProjection } from "../render/ProjectionContext.jsx";
 import { Cavity } from "./Cavity.jsx";
 
 /**

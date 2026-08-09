@@ -1,6 +1,7 @@
 import { useId } from "react";
-import { axisGradient } from "../../lib/gradient.js";
-import { useProjection } from "../../render/ProjectionContext.jsx";
+import { axisGradient } from "../lib/gradient.js";
+import { useProjection } from "../render/ProjectionContext.jsx";
+import { useSceneId } from "../render/SceneIds.jsx";
 
 /**
  * One filled face of a piece.
@@ -11,10 +12,10 @@ import { useProjection } from "../../render/ProjectionContext.jsx";
  * here, so `direction` is the one thing a component has to know about light.
  *
  * The gradient is emitted next to the shape that uses it rather than gathered
- * into the scene's `<defs>` — it is this face's and no other's, and `useId`
- * keeps the reference unique without a name having to be threaded down from
- * the scene. A gradient element draws nothing itself, so it is at home
- * anywhere.
+ * into the scene's `<defs>` — it is this face's and no other's, and a gradient
+ * element draws nothing itself, so it is at home anywhere. Its name is `useId`
+ * for the face within the scene, under the scene's own name for the page: two
+ * scenes server-rendered in separate passes still cannot collide.
  *
  * `d` is for the two faces with a hole knocked out of them, the cabinet's frame
  * and a bin's rim. The ramp is still measured off `quad`, the whole face before
@@ -22,7 +23,7 @@ import { useProjection } from "../../render/ProjectionContext.jsx";
  */
 export function Face({ quad, d, direction, material }) {
   const { points, project } = useProjection();
-  const name = `f${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const name = useSceneId(`f${useId()}`);
 
   const face = material.faces[direction];
   const shade = material.ramp?.shades[direction];

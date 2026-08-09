@@ -3,7 +3,7 @@
  * functions so they stay correct when the layout changes.
  */
 export const ui = {
-  title: "Bin wall",
+  title: "isobin",
   caption: ({ binCount }) => `${binCount} bins · tap to open`,
   sceneLabel: ({ organizerCount }) =>
     `Isometric wireframe of ${organizerCount} component storage organizers`,
@@ -16,7 +16,7 @@ export const ui = {
     resetSection: "Reset this section",
     copy: "Copy config",
     copied: "Copied",
-    copyHint: "Copy the changes as an override object for <BinWall config={…} />",
+    copyHint: "Copy the changes as an override object for <Isobin config={…} />",
     styles: "Style",
     surfaces: "Surfaces",
   },

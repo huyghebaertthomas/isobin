@@ -1,17 +1,16 @@
-import { useCallback, useMemo, useState } from "react";
-import { diff } from "../lib/merge.js";
-import { getAt, setAt } from "../lib/path.js";
-import { restyle } from "../lib/styles.js";
-import { resolveMaterials } from "../render/materials.js";
+import { useCallback, useState } from "react";
+import { diff, getAt, restyle, setAt } from "isobin/core";
 
 /**
- * The live config, and the render-ready materials derived from it.
+ * The live config the panel edits.
  *
- * Everything the panel edits — dimensions, camera, timings, materials — lives
- * in one object with the same shape as `config/`, addressed by path. Writes
- * clone only the branch they touch, so changing a colour leaves the layout and
- * the motion settings identical by reference and nothing downstream rebuilds
- * that did not have to.
+ * Everything on screen — dimensions, camera, timings, materials — lives in one
+ * object shaped like an isobin config, addressed by path. Writes clone only the
+ * branch they touch, so changing a colour leaves the layout identical by
+ * reference and nothing downstream rebuilds that did not have to.
+ *
+ * The object goes straight to `<Isobin config={…}>`; the branches the package
+ * does not know about ride along and are ignored.
  */
 export function useSettings(defaults) {
   const [settings, setSettings] = useState(defaults);
@@ -41,10 +40,8 @@ export function useSettings(defaults) {
 
   const reset = useCallback(() => setSettings(defaults), [defaults]);
 
-  const materials = useMemo(() => resolveMaterials(settings.appearance), [settings.appearance]);
-
   /** the smallest override object that reproduces the current settings */
   const patch = useCallback(() => diff(defaults, settings) ?? {}, [defaults, settings]);
 
-  return { settings, materials, set, restore, apply, reset, patch };
+  return { settings, set, restore, apply, reset, patch };
 }

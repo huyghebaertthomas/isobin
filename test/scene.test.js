@@ -1,8 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { defaultConfig, resolveConfig } from "../src/config/index.js";
-import { buildScene } from "../src/models/scene.js";
+import { buildScene, defaultConfig, resolveConfig } from "../src/core.js";
 import { box, cuboidEdges, cuboidFaces, segmentsOf } from "../src/lib/cuboid.js";
 import { axisGradient } from "../src/lib/gradient.js";
 import { createProjection } from "../src/lib/projection.js";

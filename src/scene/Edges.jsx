@@ -1,4 +1,4 @@
-import { useProjection } from "../../render/ProjectionContext.jsx";
+import { useProjection } from "../render/ProjectionContext.jsx";
 
 /**
  * The outline of a piece, as a set of world-space polylines.

@@ -1,4 +1,4 @@
-import { useProjection } from "../../render/ProjectionContext.jsx";
+import { useProjection } from "../render/ProjectionContext.jsx";
 import { Bin } from "./Bin.jsx";
 import { Carcass } from "./Carcass.jsx";
 import { Deck } from "./Deck.jsx";

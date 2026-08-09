@@ -1,23 +1,84 @@
 {
-  "name": "storage-twin",
-  "private": true,
+  "name": "isobin",
   "version": "0.1.0",
-  "type": "module",
-  "description": "Digital twin of a two-cabinet component storage organizer",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "node --test \"test/*.test.js\""
+  "description": "Isometric SVG drawings of bin-wall storage, built from a config object",
+  "keywords": [
+    "isometric",
+    "svg",
+    "react",
+    "storage",
+    "bins",
+    "inventory",
+    "diagram",
+    "digital-twin",
+    "2.5d"
+  ],
+  "license": "MIT",
+  "author": "Thomas Huyghebaert",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huyghebaertthomas/isobin.git"
   },
-  "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+  "homepage": "https://github.com/huyghebaertthomas/isobin#readme",
+  "bugs": "https://github.com/huyghebaertthomas/isobin/issues",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js",
+      "require": "./dist/core.cjs"
+    },
+    "./svg": {
+      "types": "./dist/svg.d.ts",
+      "import": "./dist/svg.js",
+      "require": "./dist/svg.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "pretest": "npm run build",
+    "test": "node --test \"test/*.test.js\" && npm run check:types",
+    "check:types": "tsc -p test/types/tsconfig.json",
+    "dev": "vite --config demo/vite.config.js",
+    "demo:build": "vite build --config demo/vite.config.js",
+    "demo:preview": "vite preview --config demo/vite.config.js",
+    "prepublishOnly": "npm test"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0",
+    "react-dom": "^18.2.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0",
+    "@types/react": "^19.1.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "tailwindcss": "^4.1.0",
+    "typescript": "^5.6.0",
     "vite": "^6.3.0"
   }
 }

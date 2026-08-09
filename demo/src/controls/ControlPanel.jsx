@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getAt } from "../../lib/path.js";
+import { getAt } from "isobin/core";
 import { Field } from "./Field.jsx";
 import { Section } from "./Section.jsx";
 import { StylePicker } from "./StylePicker.jsx";

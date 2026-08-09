@@ -1,4 +1,4 @@
-import { cuboidFaces } from "../../lib/cuboid.js";
+import { cuboidFaces } from "../lib/cuboid.js";
 import { Edges } from "./Edges.jsx";
 import { Face } from "./Face.jsx";
 

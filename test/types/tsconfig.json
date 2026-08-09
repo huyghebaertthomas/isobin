@@ -1,0 +1,14 @@
+{
+  "//": "Type-checks a consumer against dist/. Resolves `isobin` by self-reference through the package's own exports map, exactly as an installed copy would.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["consumer.ts"]
+}

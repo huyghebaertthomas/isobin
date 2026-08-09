@@ -1,4 +1,4 @@
-import { useProjection } from "../../render/ProjectionContext.jsx";
+import { useProjection } from "../render/ProjectionContext.jsx";
 import { Cavity } from "./Cavity.jsx";
 import { Edges } from "./Edges.jsx";
 import { Face } from "./Face.jsx";
@@ -13,6 +13,9 @@ import { Frost } from "./Frost.jsx";
  *
  * Opening slides the whole group along the pull direction; the scene clips it
  * to the cabinet mouth, so a bin can never paint outside the carcass.
+ *
+ * Without an `onToggle` the bin is scenery: no handler, and no cursor promising
+ * a click that does nothing.
  */
 export function Bin({ bin, open, onToggle, materials, slide, frost }) {
   const { outline, pullOffset } = useProjection();
@@ -23,8 +26,12 @@ export function Bin({ bin, open, onToggle, materials, slide, frost }) {
 
   return (
     <g
-      onClick={() => onToggle(bin)}
-      style={{ transform: `translate(${dx}px, ${dy}px)`, transition, cursor: "pointer" }}
+      onClick={onToggle ? () => onToggle(bin) : undefined}
+      style={{
+        transform: `translate(${dx}px, ${dy}px)`,
+        transition,
+        cursor: onToggle ? "pointer" : undefined,
+      }}
     >
       <Cavity bin={bin} materials={materials} />
 

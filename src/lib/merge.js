@@ -4,6 +4,13 @@
  * Plain objects merge key by key; everything else (arrays, functions,
  * primitives) is replaced wholesale, so an override that supplies a `rows`
  * array replaces the default rows rather than concatenating with them.
+ *
+ * A branch the patch does not change keeps its identity, and a branch it
+ * changes to the value already there counts as unchanged. That is what lets the
+ * scene be memoised on `layout`, `hardware`, `binTypes` and `view`: merging a
+ * whole config over the defaults — which is what happens on every edit — leaves
+ * those four the very same objects unless the edit was actually about them, so
+ * recolouring a surface does not rebuild ninety-six bins.
  */
 
 const isPlainObject = (v) =>
@@ -13,9 +20,13 @@ export function deepMerge(base, patch) {
   if (patch === undefined) return base;
   if (!isPlainObject(base) || !isPlainObject(patch)) return patch;
 
-  const out = { ...base };
+  let out = base;
   for (const [key, value] of Object.entries(patch)) {
-    out[key] = key in base ? deepMerge(base[key], value) : value;
+    const merged = key in base ? deepMerge(base[key], value) : value;
+    if (key in base && merged === base[key]) continue;
+
+    if (out === base) out = { ...base };
+    out[key] = merged;
   }
   return out;
 }

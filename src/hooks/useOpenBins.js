@@ -5,9 +5,15 @@ import { useCallback, useMemo, useRef, useState } from "react";
  *
  * State is a set of open ids; the ref mirrors it so callers on a timer can read
  * the current value without re-subscribing every render.
+ *
+ * `initial` seeds it once, at mount. Changing it afterwards does nothing, which
+ * is what makes it a default rather than a value — a caller who wants to say
+ * which bins are open from moment to moment controls `open` instead.
  */
-export function useOpenBins() {
-  const [open, setOpen] = useState(() => ({}));
+export function useOpenBins(initial) {
+  const [open, setOpen] = useState(() =>
+    Object.fromEntries((initial ?? []).map((id) => [id, true]))
+  );
   const latest = useRef(open);
   latest.current = open;
 

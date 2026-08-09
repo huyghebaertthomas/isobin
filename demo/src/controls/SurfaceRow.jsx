@@ -1,4 +1,4 @@
-import { surfaceFields } from "../../config/controls.js";
+import { surfaceFields } from "../config/controls.js";
 import { Field } from "./Field.jsx";
 
 /**

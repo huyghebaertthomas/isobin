@@ -1,5 +1,7 @@
 node_modules/
 dist/
+demo/dist/
 .vite/
+*.tsbuildinfo
 *.local
 .DS_Store
