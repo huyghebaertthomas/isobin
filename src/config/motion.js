@@ -1,22 +1,16 @@
-/** Animation timings, in milliseconds. */
+/**
+ * Animation timings, in milliseconds.
+ *
+ * Only the slide, because only the slide happens: a bin moves when it is
+ * clicked or when the handle is told to move it, and never on its own. If you
+ * want bins drifting open by themselves — an idle attract loop, a walkthrough,
+ * a replay of yesterday's picks — that is a timer of yours calling `open` and
+ * `close`, which is a dozen lines and yours to time.
+ */
 export const motion = {
   /** the slide a bin performs when it opens or closes */
   slide: {
     duration: 640,
     easing: "cubic-bezier(.22,1,.32,1)",
-  },
-
-  /** the idle animation that opens random bins on its own */
-  ambient: {
-    enabled: true,
-    /** stand down when the OS asks for reduced motion */
-    respectReducedMotion: true,
-    /** how often to consider opening something */
-    interval: 1150,
-    /** probability that a tick opens `burstSize` bins instead of one */
-    burstChance: 0.32,
-    burstSize: 2,
-    /** how long an ambiently-opened bin stays out */
-    hold: { min: 2400, max: 5200 },
   },
 };

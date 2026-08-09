@@ -1,8 +1,11 @@
 # isobin
 
-Isometric drawings of bin-wall storage, built from a config object. Bins slide
-out when clicked and drift open on their own when idle. No canvas, no WebGL —
-one `<svg>`, sized by whatever you put it in.
+2.5D isometric SVG digital twins of storage and inventory systems.
+
+Describe your shelving as a config object and isobin draws it. Every bin has an
+id, and your code opens it, closes it and asks whether it is open — so a search
+result, a pick list or a sensor reading can point at the physical compartment it
+means. No canvas, no WebGL: one `<svg>`, sized by whatever you put it in.
 
 <!--
   Absolute, not relative. GitHub would resolve a relative path fine, but the
@@ -19,6 +22,7 @@ npm install isobin
 ```
 
 ```jsx
+import { useRef } from "react";
 import { Isobin } from "isobin";
 
 const config = {
@@ -31,7 +35,16 @@ const config = {
   },
 };
 
-export const Wall = () => <Isobin config={config} />;
+export function Wall({ partLocation }) {
+  const wall = useRef(null);
+
+  // found a part? show which compartment it is in
+  useEffect(() => {
+    if (partLocation) wall.current.open(partLocation);
+  }, [partLocation]);
+
+  return <Isobin ref={wall} config={config} mode="single" />;
+}
 ```
 
 React 18 or 19, as a peer dependency. Written in JavaScript; the published types
@@ -118,7 +131,7 @@ what differs. Objects merge; **arrays replace**, so `organizers` and
 | `hardware` | physical dimensions in world units — row pitch, bin height, depth, frame, wall and divider thickness, how far a bin pulls out |
 | `binTypes` | the bin types and their compartments |
 | `view` | camera scale, isometric foreshortening, padding around the scene |
-| `motion` | slide timing and the idle animation |
+| `motion` | how long a bin takes to slide, and on what easing |
 | `appearance` | surfaces (fill, outline, opacity), the backdrop, the light and its ramp, the bin frost |
 
 `resolveConfig(overrides)` gives you the resolved article if you want to inspect
@@ -147,34 +160,99 @@ one and then correcting a colour of it does exactly what it looks like:
 swatch can show, and `restyle`/`activeStyle` apply one to settings a user is
 already editing — see the [playground](demo/) for both in use.
 
-## Which bins are open
+## Opening and closing bins
 
-Left alone, `<Isobin>` holds its own set and the idle animation drifts bins open
-and shut. Pass `open` and you take over: the component holds nothing, the idle
-animation stands down rather than fighting you, and `onToggle` is how it asks.
+Bins are addressed by id, and a ref is how you reach them. Nothing moves on its
+own: a bin opens when it is clicked, or when you say so.
+
+```jsx
+const wall = useRef(null);
+
+<Isobin ref={wall} config={config} />;
+
+wall.current.open("A-2-3");           // one, or ["A-2-3", "B-0-1"]
+wall.current.close("A-2-3");
+wall.current.toggle("A-2-3");
+wall.current.set(["A-0-0", "A-0-1"]); // exactly these, and nothing else
+wall.current.closeAll();
+```
+
+Those five hand back the resulting open set. Reading is immediate — the answer
+comes from the current state, not the last render, so `open` then `isOpen` is
+true straight away rather than a moment later:
+
+```js
+wall.current.isOpen("A-2-3");  // boolean
+wall.current.getOpen();        // ["A-2-3"], in the order they opened
+wall.current.bin("A-2-3");     // where it is, and its box on screen — or null
+wall.current.bins();           // every bin in the drawing
+```
+
+`bin(id)` gives you `{ id, organizerId, organizerName, type, row, index, label,
+open, screen }`. `screen` is the box the bin occupies in the drawing's own
+viewBox units, covering it both shut and fully pulled out — so a tooltip or a
+quantity badge anchored there does not have to move when the bin does.
+
+An id that names no bin is ignored, with one warning. A silent no-op on a
+mistyped id is a long afternoon.
+
+### Single or multi
+
+`mode` decides what opening one bin does to the others.
+
+```jsx
+<Isobin ref={wall} config={config} mode="single" />
+```
+
+| | |
+| --- | --- |
+| `multi` *(default)* | opening a bin leaves the others where they are |
+| `single` | opening a bin shuts the rest, so at most one is ever out |
+
+It applies to clicks and to calls on the handle alike, so a drawing in `single`
+mode mirrors a selection elsewhere in your app without you policing it.
+
+### Who holds the state
+
+Left alone, `<Isobin>` holds the open set itself, seeded by `defaultOpen`. That
+is usually what you want, and the handle works either way.
+
+Pass `open` and you own it. The handle and the clicks then *report* what they
+would have changed, through `onChange`, and change nothing themselves:
 
 ```jsx
 const [open, setOpen] = useState([]);
 
-<Isobin
-  config={config}
-  open={open}
-  onToggle={(bin) => setOpen((was) => was.includes(bin.id)
-    ? was.filter((id) => id !== bin.id)
-    : [...was, bin.id])}
-/>
+<Isobin config={config} open={open} mode="single" onChange={setOpen} />
 ```
 
-`interactive={false}` draws scenery instead: no handlers, and no cursor
-promising a click that does nothing.
+`onChange(open, detail)` fires for clicks and for calls alike; `detail.action`
+is `"open"`, `"close"`, `"toggle"`, `"set"` or `"closeAll"`. Controlled or not,
+`mode` is already applied to the set you are handed. If you would rather apply
+the rules yourself, `isobin/core` exports them: `openBins`, `closeBins`,
+`toggleBin`, `setBins`, `closeAllBins`, each a pure function of the old set.
+
+### Nothing moves on a timer
+
+Bins do not drift open by themselves. If you want that — an idle attract loop
+on a warehouse screen, a walkthrough, a replay of the morning's picks — it is a
+timer of yours calling `open` and `close`, and it is a dozen lines: see
+[`useIdleDrift`](demo/src/useIdleDrift.js) in the playground, which is exactly
+that and nothing more.
+
+`interactive={false}` draws scenery: no handlers, and no cursor promising a
+click that does nothing. The handle still works.
 
 ## Props
 
 | prop | |
 | --- | --- |
 | `config` | the whole description; see above |
+| `ref` | the handle: `open`, `close`, `toggle`, `set`, `closeAll`, `isOpen`, `getOpen`, `bin`, `bins` |
+| `mode` | `"multi"` (default) or `"single"` |
 | `open` | the bins that are out. Passing this takes control |
 | `defaultOpen` | which bins start out, when you are not controlling `open` |
+| `onChange` | `(open, detail) => void` — the set changed, or would have |
 | `onToggle` | `(bin) => void`, called when a bin is clicked |
 | `interactive` | `false` for a still |
 | `idPrefix` | names this drawing's internal ids — see below |

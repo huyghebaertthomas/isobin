@@ -41,6 +41,15 @@ export { buildScene } from "./models/scene.js";
  */
 export { restyle, activeStyle, styleBranches, stylePreview } from "./lib/styles.js";
 
+/**
+ * The open-set rules, as pure functions on a list of ids.
+ *
+ * `<Isobin>` applies these for you. They are exported for the case where you
+ * hold the set yourself — a controlled drawing, a reducer, a URL — and want
+ * `mode: "single"` to mean the same thing in your code as it does in ours.
+ */
+export { openBins, closeBins, toggleBin, setBins, closeAllBins } from "./lib/selection.js";
+
 export { createProjection } from "./lib/projection.js";
 export { resolveMaterials, materialFor, blankMaterial, FACES } from "./render/materials.js";
 

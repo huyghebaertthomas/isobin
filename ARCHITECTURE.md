@@ -17,7 +17,7 @@ src/
   models/      config + maths → a scene of cabinets, shelves and bins
   render/      materials, the projection context, scene-unique ids
   scene/       SVG components; they draw the scene, they don't compute it
-  hooks/       open/closed state and the idle animation
+  hooks/       the open set, and the handle that drives it
 
 demo/          the playground: page chrome, control panel, and its schema
 test/          geometry, config and the built package's public surface

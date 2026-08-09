@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
+import { createElement, isValidElement } from "react";
 
 import { buildScene, defaultConfig, resolveConfig, styleNames } from "../dist/core.js";
 import { renderToSVG } from "../dist/svg.js";
@@ -149,8 +150,9 @@ test("the package resolves the way its exports map promises", async () => {
     "react/jsx-runtime",
   ]);
 
+  // forwardRef, so not a plain function — what matters is that React will take it
   const { Isobin } = await import("../dist/index.js");
-  assert.equal(typeof Isobin, "function", "the component is the headline export");
+  assert.ok(isValidElement(createElement(Isobin)), "the component is the headline export");
 });
 
 test("the label describes the scene, and the caller can say otherwise", () => {

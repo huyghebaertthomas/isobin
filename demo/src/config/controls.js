@@ -24,6 +24,12 @@ const LIT = [
   { value: "front", label: "Fronts" },
 ];
 
+/** what opening one bin does to the others */
+const MODES = [
+  { value: "multi", label: "Multi — leave the others" },
+  { value: "single", label: "Single — shut the others" },
+];
+
 const EASINGS = [
   { value: "cubic-bezier(.22,1,.32,1)", label: "Glide" },
   { value: "cubic-bezier(.4,0,.2,1)", label: "Standard" },
@@ -85,13 +91,24 @@ export const controls = [
     fields: [
       { path: "motion.slide.duration", label: "Slide", min: 0, max: 2000, step: 10, unit: "ms" },
       { path: "motion.slide.easing", label: "Easing", type: "select", options: EASINGS },
-      { path: "motion.ambient.enabled", label: "Idle", type: "toggle", hint: "open bins on their own when nobody is clicking" },
-      { path: "motion.ambient.respectReducedMotion", label: "Respect OS", type: "toggle", hint: "stand down when the OS asks for reduced motion", enabledWhen: "motion.ambient.enabled" },
-      { path: "motion.ambient.interval", label: "Every", min: 100, max: 5000, step: 50, unit: "ms", enabledWhen: "motion.ambient.enabled" },
-      { path: "motion.ambient.burstChance", label: "Burst odds", min: 0, max: 1, step: 0.01, enabledWhen: "motion.ambient.enabled" },
-      { path: "motion.ambient.burstSize", label: "Burst size", min: 1, max: 8, step: 1, enabledWhen: "motion.ambient.enabled" },
-      { path: "motion.ambient.hold.min", label: "Hold min", min: 100, max: 12000, step: 100, unit: "ms", enabledWhen: "motion.ambient.enabled" },
-      { path: "motion.ambient.hold.max", label: "Hold max", min: 100, max: 12000, step: 100, unit: "ms", enabledWhen: "motion.ambient.enabled" },
+    ],
+  },
+
+  {
+    /*
+     * Not config: `demo.*` is the playground's own, and the library never sees
+     * it. `mode` is a prop on <Isobin>; the idle drift is a hook in this app
+     * calling open() and close() on a ref, because a twin of a real shelf
+     * should move when something happens rather than on a timer.
+     */
+    key: "behaviour",
+    label: "Behaviour",
+    fields: [
+      { path: "demo.mode", label: "Mode", type: "select", options: MODES, hint: "single shuts the others when a bin opens" },
+      { path: "demo.idle.enabled", label: "Idle drift", type: "toggle", hint: "demo only — this app opening bins on a timer through the public handle" },
+      { path: "demo.idle.interval", label: "Every", min: 200, max: 5000, step: 50, unit: "ms", enabledWhen: "demo.idle.enabled" },
+      { path: "demo.idle.holdMin", label: "Hold min", min: 200, max: 12000, step: 100, unit: "ms", enabledWhen: "demo.idle.enabled" },
+      { path: "demo.idle.holdMax", label: "Hold max", min: 200, max: 12000, step: 100, unit: "ms", enabledWhen: "demo.idle.enabled" },
     ],
   },
 

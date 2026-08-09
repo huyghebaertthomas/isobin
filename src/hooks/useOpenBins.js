@@ -1,58 +1,60 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { createBinApi } from "../lib/binApi.js";
 
 /**
- * Which bins are currently pulled out.
+ * The open set, and the handle that drives it.
  *
- * State is a set of open ids; the ref mirrors it so callers on a timer can read
- * the current value without re-subscribing every render.
+ * Controlled or not, the handle is the same object and behaves the same way.
+ * The difference is only in what `write` does: uncontrolled, it sets state;
+ * controlled, it reports what it would have set and leaves the caller to do it.
+ * Either way `onChange` fires, so a caller can mirror the set into their own
+ * state without having to take over first.
  *
- * `initial` seeds it once, at mount. Changing it afterwards does nothing, which
- * is what makes it a default rather than a value — a caller who wants to say
- * which bins are open from moment to moment controls `open` instead.
+ * `latest` is what makes reads truthful. A handle that closed over the state
+ * value would answer `isOpen` from the last render, so `open(id)` followed by
+ * `isOpen(id)` would say false — true a moment later, which is worse than
+ * wrong. The ref is written on every change as well as every render, so the
+ * answer is current even in the same tick.
+ *
+ * @param {object} options
+ * @param {string[]} [options.open] the caller's set; supplying it takes control
+ * @param {string[]} [options.defaultOpen] the set to start from, when uncontrolled
+ * @param {"single"|"multi"} options.mode
+ * @param {(ids: string[], detail: object) => void} [options.onChange]
+ * @param {Map<string, object>} options.bins every bin in the scene, by id
  */
-export function useOpenBins(initial) {
-  const [open, setOpen] = useState(() =>
-    Object.fromEntries((initial ?? []).map((id) => [id, true]))
-  );
-  const latest = useRef(open);
-  latest.current = open;
+export function useOpenBins({ open, defaultOpen, mode, onChange, bins }) {
+  const controlled = open !== undefined;
+  const [held, setHeld] = useState(() => [...(defaultOpen ?? [])]);
 
-  const openBin = useCallback(
-    (id) => setOpen((prev) => (prev[id] ? prev : { ...prev, [id]: true })),
-    []
-  );
+  const current = controlled ? open : held;
+  const latest = useRef(current);
+  latest.current = current;
 
-  const closeBin = useCallback(
-    (id) =>
-      setOpen((prev) => {
-        if (!prev[id]) return prev;
-        const next = { ...prev };
-        delete next[id];
-        return next;
+  // read through refs so the handle never needs rebuilding, and so a caller who
+  // stashes it in a ref of their own is not holding a stale closure
+  const settings = useRef({ mode, onChange, controlled });
+  settings.current = { mode, onChange, controlled };
+
+  const write = useCallback((next, detail) => {
+    const { controlled: owned, onChange: report } = settings.current;
+    if (next === latest.current) return;
+
+    latest.current = next;
+    if (!owned) setHeld(next);
+    report?.(next, detail);
+  }, []);
+
+  const api = useMemo(
+    () =>
+      createBinApi({
+        read: () => latest.current,
+        write,
+        getMode: () => settings.current.mode,
+        lookup: bins,
       }),
-    []
+    [write, bins]
   );
 
-  const toggleBin = useCallback(
-    (id) =>
-      setOpen((prev) => {
-        const next = { ...prev };
-        if (next[id]) delete next[id];
-        else next[id] = true;
-        return next;
-      }),
-    []
-  );
-
-  const closeAll = useCallback(() => setOpen({}), []);
-
-  /** ids from `candidates` that are shut right now, read off the ref */
-  const closedAmong = useCallback((ids) => ids.filter((id) => !latest.current[id]), []);
-
-  const isOpen = useCallback((id) => !!open[id], [open]);
-
-  return useMemo(
-    () => ({ open, isOpen, openBin, closeBin, toggleBin, closeAll, closedAmong }),
-    [open, isOpen, openBin, closeBin, toggleBin, closeAll, closedAmong]
-  );
+  return { open: current, api };
 }

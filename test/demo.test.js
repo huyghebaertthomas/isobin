@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 
 import { defaultConfig, getAt } from "../src/core.js";
 import { controls, surfaceFields } from "../demo/src/config/controls.js";
+import { demo } from "../demo/src/config/demo.js";
+
+/** the panel edits the config plus the demo's own branches, all by path */
+const settings = { ...defaultConfig, demo };
 
 /**
  * The demo is not published, but it is the package's first consumer and the
@@ -14,18 +18,31 @@ import { controls, surfaceFields } from "../demo/src/config/controls.js";
 test("every control points at something the config actually has", () => {
   const fields = [
     ...controls.flatMap((section) => section.fields),
-    ...defaultConfig.appearance.surfaces.flatMap((_, index) => surfaceFields(index)),
+    ...settings.appearance.surfaces.flatMap((_, index) => surfaceFields(index)),
   ];
 
   for (const field of fields) {
-    assert.notEqual(getAt(defaultConfig, field.path), undefined, `${field.path} is missing`);
+    assert.notEqual(getAt(settings, field.path), undefined, `${field.path} is missing`);
     if (field.enabledWhen) {
       assert.notEqual(
-        getAt(defaultConfig, field.enabledWhen),
+        getAt(settings, field.enabledWhen),
         undefined,
         `${field.path} is gated on the missing ${field.enabledWhen}`
       );
     }
+  }
+});
+
+test("the demo's own branch stays the demo's own", () => {
+  // `demo.*` is this app's behaviour, not the drawing's. If one of these ever
+  // resolves against the library config, it has been put in the wrong place.
+  const mine = controls
+    .flatMap((section) => section.fields)
+    .filter((field) => field.path.startsWith("demo."));
+
+  assert.ok(mine.length, "the panel drives the demo's behaviour too");
+  for (const field of mine) {
+    assert.equal(getAt(defaultConfig, field.path), undefined, `${field.path} leaked into the config`);
   }
 });
 

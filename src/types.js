@@ -97,13 +97,6 @@
 /**
  * @typedef {object} MotionConfig
  * @property {{ duration?: number, easing?: string }} [slide] the slide a bin performs
- * @property {object} [ambient] the idle animation that opens random bins on its own
- * @property {boolean} [ambient.enabled]
- * @property {boolean} [ambient.respectReducedMotion]
- * @property {number} [ambient.interval]
- * @property {number} [ambient.burstChance]
- * @property {number} [ambient.burstSize]
- * @property {{ min: number, max: number }} [ambient.hold]
  */
 
 /**
@@ -165,13 +158,70 @@
  */
 
 /**
- * A bin in a built scene. `id` is what `open` and `onToggle` deal in.
+ * A bin in a built scene. `id` is what every call and callback deals in.
  *
  * @typedef {object} SceneBin
  * @property {string} id
  * @property {string} organizerId
  * @property {string} type the bin type's key
  * @property {number} pull how far it slides, in world units
+ */
+
+/**
+ * A bin as the handle reports it: where it sits in the layout, whether it is
+ * open, and the box it occupies on screen.
+ *
+ * `screen` is in the same user units as the drawing's viewBox — it covers the
+ * bin both shut and fully pulled out, so a badge or tooltip anchored to it
+ * stays put while the bin moves.
+ *
+ * @typedef {object} BinInfo
+ * @property {string} id
+ * @property {string} organizerId
+ * @property {string} [organizerName]
+ * @property {string} type the bin type's key
+ * @property {number} row which row it is in, counting from the top
+ * @property {number} index its place across that row, from the left
+ * @property {string} label a readable description, e.g. "Organizer 1 · row 3 · bin 2"
+ * @property {boolean} open
+ * @property {{ x: number, y: number, width: number, height: number }} screen
+ */
+
+/**
+ * What a `ref` on `<Isobin>` gives you.
+ *
+ * The four that change things return the resulting open set. Reads answer from
+ * the current state rather than the last render, so `open(id)` followed by
+ * `isOpen(id)` is true straight away.
+ *
+ * An id that names no bin is ignored, with one warning — a silent no-op on a
+ * mistyped id is a long afternoon.
+ *
+ * @typedef {object} IsobinHandle
+ * @property {(ids: string|string[]) => string[]} open pull out a bin, or several
+ * @property {(ids: string|string[]) => string[]} close push one back in
+ * @property {(id: string) => string[]} toggle
+ * @property {(ids: string|string[]) => string[]} set exactly these, and nothing else
+ * @property {() => string[]} closeAll
+ * @property {(id: string) => boolean} isOpen
+ * @property {() => string[]} getOpen the ids out now, in the order they opened
+ * @property {(id: string) => BinInfo|null} bin
+ * @property {() => BinInfo[]} bins every bin in the drawing, in build order
+ */
+
+/**
+ * What opening one bin does to the others.
+ *
+ * `multi` leaves them alone. `single` shuts them, so the set never holds more
+ * than one — a drawing that follows a selection somewhere else in your app.
+ *
+ * @typedef {"single"|"multi"} SelectionMode
+ */
+
+/**
+ * @typedef {object} ChangeDetail
+ * @property {"open"|"close"|"toggle"|"set"|"closeAll"} action what was asked for
+ * @property {string|string[]} [ids] the argument it was asked with
  */
 
 /**
@@ -190,10 +240,13 @@
 /**
  * @typedef {object} IsobinProps
  * @property {Config} [config] keep this stable across renders — module scope, or `useMemo`
- * @property {string[]} [open] the bins that are out. Passing this takes control:
- *   the component stops holding its own set, and the idle animation stands down.
+ * @property {string[]} [open] the bins that are out. Passing this takes control: the
+ *   component stops holding its own set and reports through `onChange` instead.
  * @property {string[]} [defaultOpen] which bins start out, when you are not controlling `open`
- * @property {(bin: SceneBin) => void} [onToggle] called when a bin is clicked
+ * @property {SelectionMode} [mode] what opening one bin does to the others. Default `"multi"`.
+ * @property {(open: string[], detail: ChangeDetail) => void} [onChange] the open set
+ *   changed, or would have. Fires for clicks and for calls on the handle alike.
+ * @property {(bin: SceneBin) => void} [onToggle] a bin was clicked
  * @property {boolean} [interactive] false draws scenery: no handlers, no pointer cursor
  * @property {string} [idPrefix] names this drawing's internal ids. Only needed when
  *   server-rendering more than one into a page — see the readme.

@@ -1,16 +1,19 @@
 {
   "name": "isobin",
   "version": "0.1.1",
-  "description": "Isometric SVG drawings of bin-wall storage, built from a config object",
+  "description": "2.5D isometric SVG digital twins of storage and inventory systems — describe your shelving as config, then open and close bins by id from code",
   "keywords": [
     "isometric",
     "svg",
     "react",
+    "digital-twin",
+    "inventory",
+    "warehouse",
     "storage",
     "bins",
-    "inventory",
+    "shelving",
+    "visualization",
     "diagram",
-    "digital-twin",
     "2.5d"
   ],
   "license": "MIT",
@@ -55,7 +58,7 @@
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
     "pretest": "npm run build",
-    "test": "node --test test/config.test.js test/demo.test.js test/render.test.js test/scene.test.js && npm run check:types",
+    "test": "node --test test/config.test.js test/control.test.js test/demo.test.js test/render.test.js test/scene.test.js && npm run check:types",
     "check:types": "tsc -p test/types/tsconfig.json",
     "dev": "vite --config demo/vite.config.js",
     "demo:build": "vite build --config demo/vite.config.js",

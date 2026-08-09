@@ -1,46 +1,63 @@
-import { useCallback, useMemo } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useMemo } from "react";
 import { resolveConfig } from "./config/index.js";
-import { useAmbientMotion } from "./hooks/useAmbientMotion.js";
 import { useOpenBins } from "./hooks/useOpenBins.js";
 import { buildScene } from "./models/scene.js";
 import { resolveMaterials } from "./render/materials.js";
 import { SceneView } from "./scene/SceneView.jsx";
 
 /**
- * An isometric cabinet wall, drawn as one `<svg>`.
+ * An isometric drawing of a storage system, as one `<svg>`.
  *
- * Everything about it — how many cabinets, what rows are in them, the hardware
- * they are built from, the camera, the timings and the paint — comes out of one
- * `config` object folded over the defaults. Nothing is styled from outside: the
- * element has no size of its own and fills whatever box you put it in.
+ * What is drawn — how many cabinets, what rows are in them, the hardware they
+ * are built from, the camera and the paint — comes out of one `config` object
+ * folded over the defaults. The element has no size of its own and fills
+ * whatever box you put it in.
  *
  *   <Isobin config={{ style: "blueprint" }} />
  *
  * Keep `config` stable across renders — module scope, or `useMemo`. A fresh
  * object literal every render rebuilds every bin every render.
  *
- * Which bins are out can be left to the component or taken over:
+ * ## Driving it
  *
- *   uncontrolled   `defaultOpen`, plus the idle animation if config allows it
- *   controlled     pass `open`, and the component only ever asks via `onToggle`
+ * Bins are addressed by id, and a ref is how you reach them:
  *
- * The idle animation stands down while you are controlling `open`, rather than
- * fighting you for it.
+ *   const wall = useRef(null);
+ *   <Isobin ref={wall} config={config} mode="single" />
+ *
+ *   wall.current.open("A-2-3");     // and .close, .toggle, .set, .closeAll
+ *   wall.current.isOpen("A-2-3");   // true, immediately
+ *   wall.current.bin("A-2-3");      // where it is, and its box on screen
+ *
+ * `mode` decides what opening one does to the others: `"multi"` leaves them
+ * alone, `"single"` shuts them. Nothing opens or closes on its own — a bin
+ * moves when it is clicked, or when you say so.
+ *
+ * State can be held here or by you. Left alone it is held here, seeded by
+ * `defaultOpen`. Pass `open` and you own it: the handle and the clicks then
+ * report through `onChange` instead of changing anything themselves, which is
+ * the same set they would have moved to.
  *
  * @param {import("./types.js").IsobinProps} props
+ * @param {import("react").Ref<import("./types.js").IsobinHandle>} ref
  */
-export function Isobin({
-  config,
-  open,
-  defaultOpen,
-  onToggle,
-  interactive = true,
-  idPrefix,
-  label,
-  className,
-  style,
-  ...rest
-}) {
+export const Isobin = forwardRef(function Isobin(
+  {
+    config,
+    open,
+    defaultOpen,
+    mode = "multi",
+    onChange,
+    onToggle,
+    interactive = true,
+    idPrefix,
+    label,
+    className,
+    style,
+    ...rest
+  },
+  ref
+) {
   const settings = useMemo(() => resolveConfig(config), [config]);
 
   // the scene depends on these four branches and nothing else, and a merge
@@ -54,26 +71,27 @@ export function Isobin({
 
   const materials = useMemo(() => resolveMaterials(settings.appearance), [settings.appearance]);
 
-  const controlled = open !== undefined;
-  const bins = useOpenBins(defaultOpen);
+  const { open: current, api } = useOpenBins({
+    open,
+    defaultOpen,
+    mode,
+    onChange,
+    bins: scene.binsById,
+  });
 
-  // a controlled scene reads its open set from the prop and holds none of its own
-  const openIds = useMemo(() => new Set(controlled ? open : null), [controlled, open]);
-  const isOpen = useCallback(
-    (id) => (controlled ? openIds.has(id) : bins.isOpen(id)),
-    [controlled, openIds, bins]
-  );
+  useImperativeHandle(ref, () => api, [api]);
 
-  // ambient motion drives the internal set, so it has nothing to drive when the
-  // caller owns it
-  useAmbientMotion(scene.bins, bins, controlled ? OFF : settings.motion.ambient);
+  const isOpen = useMemo(() => {
+    const out = new Set(current);
+    return (id) => out.has(id);
+  }, [current]);
 
   const toggle = useCallback(
     (bin) => {
-      if (!controlled) bins.toggleBin(bin.id);
+      api.toggle(bin.id);
       onToggle?.(bin);
     },
-    [controlled, bins, onToggle]
+    [api, onToggle]
   );
 
   return (
@@ -90,9 +108,7 @@ export function Isobin({
       {...rest}
     />
   );
-}
-
-const OFF = { enabled: false };
+});
 
 const describe = (scene) =>
   `Isometric drawing of ${scene.organizers.length} storage ${

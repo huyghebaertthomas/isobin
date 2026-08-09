@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Isobin,
   activeStyle,
@@ -9,7 +9,9 @@ import {
   styles as presets,
 } from "isobin";
 import { useSettings } from "./useSettings.js";
+import { useIdleDrift } from "./useIdleDrift.js";
 import { controls } from "./config/controls.js";
+import { demo } from "./config/demo.js";
 import { ui } from "./config/ui.js";
 import { ControlPanel } from "./controls/ControlPanel.jsx";
 
@@ -18,16 +20,35 @@ import { ControlPanel } from "./controls/ControlPanel.jsx";
  *
  * The whole of the panel's state is one config object, the same one `<Isobin>`
  * takes, so `Copy config` really is the code that reproduces what is on screen.
- * The demo owns three branches the package does not — `controls` describes the
- * widgets, `ui` holds the copy, `styles` is the swatch list — and they ride
- * along in the same object because the panel edits by path and does not care
- * which of them a path lands in.
+ * The demo owns four branches the package does not — `controls` describes the
+ * widgets, `ui` holds the copy, `styles` is the swatch list, `demo` is this
+ * app's own behaviour — and they ride along in the same object because the
+ * panel edits by path and does not care which of them a path lands in.
+ * `<Isobin>` ignores all four.
  */
-const defaults = { ...defaultConfig, controls, ui, styles: presets };
+const defaults = { ...defaultConfig, controls, ui, styles: presets, demo };
 
 export function Playground() {
   const { settings, set, restore, apply, reset, patch } = useSettings(defaults);
   const [panelOpen, setPanelOpen] = useState(true);
+
+  /**
+   * The drawing is driven through its handle, exactly as an application would
+   * drive it — the idle drift below is a timer in this app calling `open` and
+   * `close`, not something the library does on its own.
+   */
+  const wall = useRef(null);
+  const { mode, idle } = settings.demo;
+
+  const drift = useMemo(
+    () => ({
+      enabled: idle.enabled,
+      interval: idle.interval,
+      hold: [idle.holdMin, Math.max(idle.holdMin, idle.holdMax)],
+    }),
+    [idle.enabled, idle.interval, idle.holdMin, idle.holdMax]
+  );
+  useIdleDrift(wall, drift);
 
   const copy = useCallback(async () => {
     try {
@@ -83,7 +104,12 @@ export function Playground() {
           )}
         </div>
 
-        <Isobin config={settings} className="w-full max-w-5xl select-none rounded-lg" />
+        <Isobin
+          ref={wall}
+          config={settings}
+          mode={mode}
+          className="w-full max-w-5xl select-none rounded-lg"
+        />
       </main>
 
       {panelOpen ? (
