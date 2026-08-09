@@ -57,10 +57,25 @@ const props: IsobinProps = {
   config,
   mode,
   open: ["A-0-0"],
+  highlight: { "A-0-0": "found", "A-0-1": "#f59e0b", "A-0-2": { fill: "#fff", pulse: true } },
+  labels: { "A-0-0": "10k", "A-0-1": 42 },
   onToggle: (bin) => bin.id.toUpperCase(),
   onChange: (ids: string[], detail: ChangeDetail) => `${ids.length} ${detail.action}`,
+  onBinEnter: (bin: BinInfo) => `${bin.label} at ${bin.screen.x}`,
+  onBinLeave: () => undefined,
   interactive: false,
   className: "w-full",
+};
+
+// the shorthand form, and bins named from the layout rather than by position
+const flagged: IsobinProps = { highlight: ["A-0-0"] };
+const named: Config = {
+  layout: {
+    idFor: ({ organizerId, row, index }) => `${organizerId}/${row}/${index}`,
+    organizers: [
+      { id: "A", rows: [{ type: "small", ids: ["R-100"], count: 1 }, { type: "large", id: "BULK" }] },
+    ],
+  },
 };
 
 /**
@@ -107,4 +122,6 @@ export {
   everyBin,
   anchor,
   held,
+  flagged,
+  named,
 };

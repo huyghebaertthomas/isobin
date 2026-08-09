@@ -1,6 +1,7 @@
 import { boundsOf } from "../lib/bounds.js";
 import { boardEdges, box, boxCorners, deckEdges, horizontalQuad } from "../lib/cuboid.js";
 import { paintOrder } from "../lib/ordering.js";
+import { assertUniqueIds, binNamer } from "./binId.js";
 import { expandRows } from "./rows.js";
 import { fittedDivider, pullDistance } from "./binType.js";
 import { buildBinShape } from "./binShape.js";
@@ -85,6 +86,7 @@ export function buildOrganizer(def, ctx) {
 
     const divider = fittedDivider(row.type, row.divided);
     const rowBins = [];
+    const nameBin = binNamer(row, { organizerId: def.id, rowIndex, idFor: ctx.idFor });
 
     for (let i = 0; i < row.count; i++) {
       const outer = box(
@@ -99,14 +101,14 @@ export function buildOrganizer(def, ctx) {
       const pull = pullDistance(row.type, outer.d, hw.binPullFraction);
 
       rowBins.push({
-        id: `${def.id}-${rowIndex}-${i}`,
+        id: nameBin(i),
         kind: "bin",
         organizerId: def.id,
         organizerName: def.name,
         type: row.typeName,
         row: rowIndex,
         index: i,
-        label: `${def.name} · row ${rowIndex + 1} · bin ${i + 1}`,
+        label: `${def.name ?? def.id} · row ${rowIndex + 1} · bin ${i + 1}`,
         box: outer,
         divider,
         pull,

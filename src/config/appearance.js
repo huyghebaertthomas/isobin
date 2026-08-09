@@ -62,4 +62,32 @@ export const appearance = {
 
   /** stroke styling shared by every surface */
   stroke: { linejoin: "round", nonScaling: true },
+
+  /**
+   * Named ways for a bin to stand out, for the `highlight` prop to point at:
+   *
+   *   <Isobin highlight={{ "R-100": "found", "R-101": "low" }} />
+   *
+   * Each is a surface, folded over the `bin` surface — so naming a fill is
+   * enough and everything else stays as the style had it. `pulse` breathes the
+   * bin's opacity, for the one you are trying to make somebody look at.
+   *
+   * `highlight` also takes a colour or a surface of its own, for the case where
+   * the highlight comes from data rather than from a fixed vocabulary.
+   */
+  highlights: {
+    found: { fill: "#22c55e", stroke: "#14532d", pulse: true },
+    low: { fill: "#f59e0b", stroke: "#78350f" },
+    empty: { fill: "#e5e7eb", fillOpacity: 0.55, stroke: "#9ca3af" },
+    alert: { fill: "#ef4444", stroke: "#7f1d1d", pulse: true },
+  },
+
+  /** how a labelled bin is lettered; `size` is in world units, so it scales */
+  label: {
+    fill: "#1c1917",
+    opacity: 0.85,
+    size: 0.2,
+    family: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    weight: 600,
+  },
 };

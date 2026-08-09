@@ -42,10 +42,35 @@ export const blankMaterial = {
   line: { stroke: "none" },
 };
 
-export function resolveMaterials({ borders, background, glass, shading, surfaces, stroke }) {
+export function resolveMaterials({
+  borders,
+  background,
+  glass,
+  shading,
+  surfaces,
+  stroke,
+  highlights,
+  label,
+}) {
+  const bin = surfaces.find((surface) => surface.key === "bin") ?? surfaces[0];
+
   return {
     background,
     glass,
+    label,
+    /**
+     * The named highlights, each resolved once into a material of its own
+     * rather than per bin that wears it — a wall where half the bins are
+     * flagged still only pays for the handful of distinct looks among them.
+     */
+    highlights: Object.fromEntries(
+      Object.entries(highlights ?? {}).map(([name, spec]) => [
+        name,
+        highlightMaterial(bin, spec, borders, stroke, shading),
+      ])
+    ),
+    /** the same, for a highlight given as a colour or a surface on the spot */
+    highlight: (spec) => highlightMaterial(bin, spec, borders, stroke, shading),
     /**
      * `vector-effect` is not an inherited property, so setting it on the group
      * a shape lives in does nothing at all. The scene turns this into one CSS
@@ -56,6 +81,17 @@ export function resolveMaterials({ borders, background, glass, shading, surfaces
       surfaces.map((surface) => [surface.key, surfaceMaterial(surface, borders, stroke, shading)])
     ),
   };
+}
+
+/**
+ * A bin wearing a highlight: the `bin` surface with the highlight folded over
+ * it, so naming a fill is enough and the style's outlines, opacity and light
+ * all survive. A bare string is taken as that fill.
+ */
+function highlightMaterial(bin, spec, borders, stroke, shading) {
+  const over = typeof spec === "string" ? { fill: spec } : (spec ?? {});
+  const material = surfaceMaterial({ ...bin, ...over }, borders, stroke, shading);
+  return over.pulse ? { ...material, pulse: true } : material;
 }
 
 function surfaceMaterial(surface, borders, stroke, shading) {

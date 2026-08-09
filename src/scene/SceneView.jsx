@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { BinProvider } from "../render/BinContext.jsx";
 import { ProjectionProvider } from "../render/ProjectionContext.jsx";
 import { SceneIdProvider, useSceneName } from "../render/SceneIds.jsx";
 import { materialFor } from "../render/materials.js";
@@ -24,8 +25,17 @@ export function SceneView({
   materials,
   slide,
   isOpen,
-  onToggle,
+  bin,
   label,
+  /**
+   * `img` for a drawing, `group` for one that can be worked.
+   *
+   * It matters more than it looks: `role="img"` tells a screen reader the whole
+   * element is one picture, and everything inside it stops being announced. Get
+   * this wrong on an interactive wall and the focusable bins are reachable by
+   * tab and silent when they arrive.
+   */
+  role = "img",
   idPrefix,
   className,
   style,
@@ -43,44 +53,52 @@ export function SceneView({
   return (
     <ProjectionProvider projection={scene.projection}>
       <SceneIdProvider id={uid}>
-        <svg
-          viewBox={scene.bounds.viewBox}
-          className={className ? `${uid} ${className}` : uid}
-          style={{ background: materials.background, ...style }}
-          role="img"
-          aria-label={label}
-          {...rest}
-        >
-          {/* `vector-effect` is not inherited, so it has to reach the shapes
-              themselves; a rule over this scene's descendants is the one way to
-              say it once. */}
-          {materials.hairline ? (
-            <style>{`.${uid} * { vector-effect: non-scaling-stroke; }`}</style>
-          ) : null}
-
-          {scene.table ? <Table table={scene.table} material={surfaces.table} /> : null}
-
-          {scene.order.map((organizer) => (
-            <Organizer
-              key={organizer.id}
-              organizer={organizer}
-              ids={{
-                mouth: `mouth-${uid}-${organizer.id}`,
-                band: `band-${uid}-${organizer.id}`,
-                backdropBand: `backband-${uid}-${organizer.id}`,
-              }}
-              materials={surfaces}
-              slide={slide}
-              isOpen={isOpen}
-              onToggle={onToggle}
-              frost={
-                blur > 0 && opacity > 0
-                  ? { uid, blur, opacity, backdropId: `back-${uid}-${organizer.id}` }
-                  : null
+        <BinProvider value={bin ?? undefined}>
+          <svg
+            viewBox={scene.bounds.viewBox}
+            className={className ? `${uid} ${className}` : uid}
+            style={{ background: materials.background, ...style }}
+            role={role}
+            aria-label={label}
+            {...rest}
+          >
+            {/* `vector-effect` is not inherited, so it has to reach the shapes
+                themselves; a rule over this scene's descendants is the one way
+                to say it once. The pulse is here for the same reason: one rule
+                beats an inline animation on every flagged bin, and it honours
+                a reduced-motion setting where an inline one could not. */}
+            <style>{`
+              ${materials.hairline ? `.${uid} * { vector-effect: non-scaling-stroke; }` : ""}
+              .${uid} .isobin-pulse { animation: isobin-pulse 1.4s ease-in-out infinite; }
+              @keyframes isobin-pulse { 50% { opacity: .45 } }
+              @media (prefers-reduced-motion: reduce) {
+                .${uid} .isobin-pulse { animation: none }
               }
-            />
-          ))}
-        </svg>
+            `}</style>
+
+            {scene.table ? <Table table={scene.table} material={surfaces.table} /> : null}
+
+            {scene.order.map((organizer) => (
+              <Organizer
+                key={organizer.id}
+                organizer={organizer}
+                ids={{
+                  mouth: `mouth-${uid}-${organizer.id}`,
+                  band: `band-${uid}-${organizer.id}`,
+                  backdropBand: `backband-${uid}-${organizer.id}`,
+                }}
+                materials={surfaces}
+                slide={slide}
+                isOpen={isOpen}
+                frost={
+                  blur > 0 && opacity > 0
+                    ? { uid, blur, opacity, backdropId: `back-${uid}-${organizer.id}` }
+                    : null
+                }
+              />
+            ))}
+          </svg>
+        </BinProvider>
       </SceneIdProvider>
     </ProjectionProvider>
   );

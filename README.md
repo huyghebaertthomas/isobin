@@ -25,25 +25,36 @@ npm install isobin
 import { useRef } from "react";
 import { Isobin } from "isobin";
 
+// bins carry your ids, not ours
 const config = {
-  style: "blueprint",
   layout: {
     organizers: [
-      { id: "A", rows: [{ type: "small", repeat: 12 }] },
-      { id: "B", rows: [{ type: "medium", repeat: 4 }, { type: "large", repeat: 2 }] },
+      { id: "A", rows: [
+        { type: "small", ids: ["R-100", "R-101", "R-102", "R-103", "R-104"] },
+        { type: "medium", id: "IC" },
+      ] },
+      { id: "B", rows: [{ type: "small", repeat: 8 }] },
     ],
   },
 };
 
-export function Wall({ partLocation }) {
+export function Wall({ found, lowStock }) {
   const wall = useRef(null);
 
-  // found a part? show which compartment it is in
+  // somebody searched for a part: pull out the bin it lives in
   useEffect(() => {
-    if (partLocation) wall.current.open(partLocation);
-  }, [partLocation]);
+    if (found) wall.current.open(found);
+  }, [found]);
 
-  return <Isobin ref={wall} config={config} mode="single" />;
+  return (
+    <Isobin
+      ref={wall}
+      config={config}
+      mode="single"
+      highlight={{ ...lowStock, [found]: "found" }}
+      onBinEnter={(bin) => showTooltip(bin.label, bin.screen)}
+    />
+  );
 }
 ```
 
@@ -114,9 +125,45 @@ string:
 | `repeat` | emit this many identical rows (default 1) |
 | `count` | bins across the row; defaults to the type's `perRow`. The row is always filled exactly, so this widens or narrows the bins rather than leaving a gap |
 | `divided` | fit the compartment divider? Only honoured where the type marks its divider `optional` |
+| `id` / `ids` | what the bins are called — see below |
 
 A cabinet may also carry `innerWidth`, or a `hardware` block, to deviate from
 the rest of the wall.
+
+### Naming bins
+
+Bins are named positionally by default — `A-2-3` is cabinet A, row 3, bin 4 —
+which is fine for a drawing and wrong for a record. **Insert a shelf at the top
+of a cabinet and every id below it shifts by one**, so anything you stored
+against `A-2-3` now points at the bin above it.
+
+So say what they are called, and then they are called that however the drawing
+is rearranged around them:
+
+```js
+rows: [
+  { type: "small", ids: ["R-100", "R-101", "R-102", "R-103", "R-104"] },
+  { type: "large", id: "BULK" },        // a row of one takes the name as it is
+  { type: "medium", id: "IC" },         // a row of several: IC-0, IC-1, …
+]
+```
+
+Or name the whole wall at once, if your ids follow a rule:
+
+```js
+layout: {
+  idFor: ({ organizerId, row, index }) => `${organizerId}/${row + 1}/${index + 1}`,
+  organizers: [ … ],
+}
+```
+
+Most specific wins: `ids` beats `id` beats `idFor` beats the positional
+default. `idFor` is a function, so it will not survive `JSON.stringify` — for a
+config you mean to serialise, name bins on the rows.
+
+Ids are addresses, so **they must be unique**: two bins with one name throws at
+build time rather than leaving one of them unreachable. Naming a row and
+`repeat`ing it throws too — every repeat would want the same name.
 
 ## The rest of the config
 
@@ -132,7 +179,7 @@ what differs. Objects merge; **arrays replace**, so `organizers` and
 | `binTypes` | the bin types and their compartments |
 | `view` | camera scale, isometric foreshortening, padding around the scene |
 | `motion` | how long a bin takes to slide, and on what easing |
-| `appearance` | surfaces (fill, outline, opacity), the backdrop, the light and its ramp, the bin frost |
+| `appearance` | surfaces (fill, outline, opacity), the backdrop, the light and its ramp, the bin frost, the named highlights, and how labels are set |
 
 `resolveConfig(overrides)` gives you the resolved article if you want to inspect
 it, and `diff(defaultConfig, yours)` gives back the smallest override that
@@ -232,6 +279,69 @@ is `"open"`, `"close"`, `"toggle"`, `"set"` or `"closeAll"`. Controlled or not,
 the rules yourself, `isobin/core` exports them: `openBins`, `closeBins`,
 `toggleBin`, `setBins`, `closeAllBins`, each a pure function of the old set.
 
+## Saying something about a bin
+
+Two props, both keyed by bin id, so both come straight out of your own data.
+
+```jsx
+<Isobin
+  config={config}
+  highlight={{ "R-102": "found", "C-201": "low", "IC-300": "#8b5cf6" }}
+  labels={{ "R-100": "10k", "R-102": "47k", "IC-300": "LM358" }}
+/>
+```
+
+**`highlight`** picks bins out. The value names one of `appearance.highlights`,
+or gives a colour, or a whole surface of its own. Four are shipped — `found`,
+`low`, `empty` and `alert` — and they are only config, so you can replace them
+or add your own:
+
+```js
+appearance: {
+  highlights: {
+    expiring: { fill: "#fb923c", stroke: "#7c2d12", pulse: true },
+  },
+}
+```
+
+A highlight is folded *over* the `bin` surface, so naming a fill is enough and
+the style's outlines, opacity and light all survive — a highlighted bin still
+reads as a solid rather than a flat sticker. `pulse` breathes its opacity, for
+the one bin you want somebody to look at; it stands down under
+`prefers-reduced-motion`. An array is shorthand for the `found` highlight:
+`highlight={["R-102"]}`.
+
+**`labels`** letters the bin's face — a part number, a quantity, whatever you
+have. The text is drawn *into* the plane of the face rather than flat over the
+picture, so it leans with the drawing, and it shrinks if the label is long for
+the bin. Set it in `appearance.label`: `size` is in world units, so lettering
+scales with everything else.
+
+Both work in `renderToSVG` too, which is how you serve a picture of the wall
+with today's low-stock bins already flagged.
+
+## Keyboard and screen readers
+
+When `interactive`, every bin is a real focus target: tab into the wall, arrow
+around it, Enter or Space to open.
+
+| key | |
+| --- | --- |
+| <kbd>←</kbd> <kbd>→</kbd> | along the row, and off the end into the next cabinet |
+| <kbd>↑</kbd> <kbd>↓</kbd> | the row above or below, keeping your place across its width |
+| <kbd>Home</kbd> <kbd>End</kbd> | first or last bin in the row |
+| <kbd>Enter</kbd> <kbd>Space</kbd> | open or shut it |
+
+Rows do not have to be the same width for this to work — moving from a row of
+five into a row of two lands where it looks like it should rather than at bin
+one.
+
+Each bin carries `role="button"`, its own `aria-label` and `aria-pressed`. The
+`<svg>` itself is a `group` when interactive and an `img` when it is not:
+`role="img"` tells a screen reader the whole thing is one picture and silences
+everything inside it, which is right for a still and wrong for a wall of
+buttons.
+
 ### Nothing moves on a timer
 
 Bins do not drift open by themselves. If you want that — an idle attract loop
@@ -252,9 +362,12 @@ click that does nothing. The handle still works.
 | `mode` | `"multi"` (default) or `"single"` |
 | `open` | the bins that are out. Passing this takes control |
 | `defaultOpen` | which bins start out, when you are not controlling `open` |
+| `highlight` | bins to pick out, by id |
+| `labels` | what to letter each bin with, by id |
 | `onChange` | `(open, detail) => void` — the set changed, or would have |
-| `onToggle` | `(bin) => void`, called when a bin is clicked |
-| `interactive` | `false` for a still |
+| `onToggle` | `(bin) => void`, called when a bin is clicked or worked from the keyboard |
+| `onBinEnter`, `onBinLeave` | the pointer entered or left a bin — for tooltips. Reported even on a non-interactive drawing |
+| `interactive` | `false` for a still: no clicks, no focus, no cursor |
 | `idPrefix` | names this drawing's internal ids — see below |
 | `label` | the `aria-label`; one is described from the scene by default |
 | `className`, `style` | passed to the `<svg>`, which carries no size of its own |

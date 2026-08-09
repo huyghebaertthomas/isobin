@@ -155,6 +155,35 @@ test("the package resolves the way its exports map promises", async () => {
   assert.ok(isValidElement(createElement(Isobin)), "the component is the headline export");
 });
 
+test("a drawing can say something about particular bins", () => {
+  const rows = [{ type: "small", ids: ["R-100", "R-101", "R-102", "R-103", "R-104"] }];
+  const config = { layout: { organizers: [{ id: "A", rows }] } };
+
+  const plain = renderToSVG(config, { idPrefix: "p" });
+  const marked = renderToSVG(config, {
+    idPrefix: "m",
+    highlight: { "R-100": "found", "R-102": "#8b5cf6" },
+    labels: { "R-100": "10k", "R-104": "1M" },
+  });
+
+  assert.ok(marked.includes("#8b5cf6"), "a colour given on the spot is used as given");
+  assert.ok(marked.includes("#22c55e"), "and a named highlight brings its own");
+  assert.ok(!plain.includes("#22c55e"), "neither of which appears when nothing is flagged");
+
+  assert.ok(marked.includes(">10k<") && marked.includes(">1M<"), "lettering is drawn");
+  assert.equal((marked.match(/<text/g) ?? []).length, 2, "once per labelled bin, and no more");
+
+  // every bin carries its id, so the drawing can be addressed from outside too
+  for (const id of rows[0].ids) assert.ok(plain.includes(`data-bin-id="${id}"`), id);
+});
+
+test("a still is an image; a drawing you can work is not", () => {
+  // role="img" hides everything inside from a screen reader, which is right for
+  // a picture and wrong for a wall of buttons
+  assert.match(renderToSVG(), /role="img"/, "renderToSVG makes stills");
+  assert.ok(!renderToSVG().includes("tabindex"), "and nothing in one takes focus");
+});
+
 test("the label describes the scene, and the caller can say otherwise", () => {
   assert.match(renderToSVG(), /aria-label="Isometric drawing of 2 storage cabinets, \d+ bins"/);
   assert.match(

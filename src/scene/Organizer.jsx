@@ -21,7 +21,7 @@ import { Shelf } from "./Shelf.jsx";
  * id. That copy is never drawn; it is only what each bin blurs to make its
  * glass, and while the blur is zero it is not emitted at all.
  */
-export function Organizer({ organizer, ids, materials, slide, isOpen, onToggle, frost }) {
+export function Organizer({ organizer, ids, materials, slide, isOpen, frost }) {
   const { screenPoints } = useProjection();
 
   return (
@@ -59,7 +59,6 @@ export function Organizer({ organizer, ids, materials, slide, isOpen, onToggle, 
               key={piece.id}
               bin={piece}
               open={isOpen(piece.id)}
-              onToggle={onToggle}
               materials={materials}
               slide={slide}
               frost={frost}

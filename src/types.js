@@ -28,7 +28,10 @@
  *   The row is always filled exactly, so this widens or narrows the bins.
  * @property {boolean} [divided] fit the compartment divider; only honoured when
  *   the bin type marks its divider optional
- * @property {string} [id]
+ * @property {string} [id] names the row: its bins become `id-0`, `id-1`… , or
+ *   just `id` when the row holds one. Cannot be combined with `repeat`.
+ * @property {string[]} [ids] one id per bin, in order across the row. Give every
+ *   bin a name or none. Cannot be combined with `repeat`.
  */
 
 /**
@@ -52,6 +55,10 @@
  * @property {{ enabled?: boolean, thickness?: number, overhang?: number }} [table]
  *   the surface the cabinets stand on, measured from them rather than authored
  * @property {OrganizerSpec[]} [organizers]
+ * @property {(at: { organizerId: string, row: number, index: number, type: string })
+ *   => string} [idFor] names every bin at once. A function, so it does not
+ *   survive `JSON.stringify` — for a config you mean to serialise, name bins on
+ *   the rows instead.
  */
 
 /**
@@ -135,6 +142,33 @@
  * @property {{ blur?: number, opacity?: number }} [glass] frosted bins; zero blur draws no filter
  * @property {ShadingConfig} [shading]
  * @property {{ linejoin?: "round"|"miter"|"bevel", nonScaling?: boolean }} [stroke]
+ * @property {Record<string, HighlightSpec>} [highlights] named ways for a bin to
+ *   stand out, for the `highlight` prop to point at
+ * @property {LabelConfig} [label] how a lettered bin is set
+ */
+
+/**
+ * A way for a bin to stand out: the `bin` surface with this folded over it, so
+ * naming a fill is enough. `pulse` breathes its opacity, for the one bin you
+ * are trying to make somebody look at — it stands down under
+ * `prefers-reduced-motion`.
+ *
+ * @typedef {object} HighlightSpec
+ * @property {string} [fill]
+ * @property {number} [fillOpacity]
+ * @property {string} [stroke]
+ * @property {number} [strokeOpacity]
+ * @property {number} [width]
+ * @property {boolean} [pulse]
+ */
+
+/**
+ * @typedef {object} LabelConfig
+ * @property {string} [fill]
+ * @property {number} [opacity]
+ * @property {number} [size] cap height in world units, so it scales with the drawing
+ * @property {string} [family]
+ * @property {number|string} [weight]
  */
 
 /**
@@ -244,10 +278,18 @@
  *   component stops holding its own set and reports through `onChange` instead.
  * @property {string[]} [defaultOpen] which bins start out, when you are not controlling `open`
  * @property {SelectionMode} [mode] what opening one bin does to the others. Default `"multi"`.
+ * @property {Record<string, string|HighlightSpec>|string[]} [highlight] bins to
+ *   pick out, by id. The value names one of `appearance.highlights`, or gives a
+ *   colour, or a whole surface. An array is shorthand for the `found` highlight.
+ * @property {Record<string, string|number>} [labels] what to letter each bin
+ *   with, by id — a part number, a count, whatever your data has
  * @property {(open: string[], detail: ChangeDetail) => void} [onChange] the open set
  *   changed, or would have. Fires for clicks and for calls on the handle alike.
- * @property {(bin: SceneBin) => void} [onToggle] a bin was clicked
- * @property {boolean} [interactive] false draws scenery: no handlers, no pointer cursor
+ * @property {(bin: BinInfo) => void} [onToggle] a bin was clicked or worked from the keyboard
+ * @property {(bin: BinInfo) => void} [onBinEnter] the pointer entered a bin — for tooltips.
+ *   Reported even when `interactive` is false.
+ * @property {(bin: BinInfo) => void} [onBinLeave] and left it
+ * @property {boolean} [interactive] false draws scenery: no clicks, no focus, no cursor
  * @property {string} [idPrefix] names this drawing's internal ids. Only needed when
  *   server-rendering more than one into a page — see the readme.
  * @property {string} [label] the `aria-label`; one is described from the scene by default
@@ -258,8 +300,10 @@
 /**
  * @typedef {object} RenderOptions
  * @property {string[]} [open] bins to draw pulled out
+ * @property {Record<string, string|HighlightSpec>|string[]} [highlight] bins to pick out
+ * @property {Record<string, string|number>} [labels] what to letter each bin with
  * @property {string} [idPrefix] defaults to a fresh one per call
- * @property {string} [label]
+ * @property {string} [label] the `aria-label` for the drawing as a whole
  * @property {string} [className]
  */
 

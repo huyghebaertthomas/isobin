@@ -3,6 +3,7 @@ import { box, boxCorners, cuboidEdges } from "../lib/cuboid.js";
 import { convexHull } from "../lib/hull.js";
 import { cabinetOrder } from "../lib/ordering.js";
 import { createProjection } from "../lib/projection.js";
+import { assertUniqueIds } from "./binId.js";
 import { buildOrganizer } from "./organizer.js";
 
 /**
@@ -24,6 +25,7 @@ export function buildScene(config) {
       hardware,
       binTypes,
       innerWidth: layout.innerWidth,
+      idFor: layout.idFor,
       projection,
     });
     x += organizer.body.w + layout.gap;
@@ -31,6 +33,7 @@ export function buildScene(config) {
   });
 
   const bins = organizers.flatMap((organizer) => organizer.bins);
+  assertUniqueIds(bins);
   const table = buildTable(layout.table, organizers);
 
   return {
