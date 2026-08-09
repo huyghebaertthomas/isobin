@@ -4,6 +4,16 @@ Isometric drawings of bin-wall storage, built from a config object. Bins slide
 out when clicked and drift open on their own when idle. No canvas, no WebGL —
 one `<svg>`, sized by whatever you put it in.
 
+<!--
+  Absolute, not relative. GitHub would resolve a relative path fine, but the
+  GIF is not in the npm tarball — `files` ships dist, the readme and the
+  licence, and nothing else — so on npmjs.com a relative path resolves to
+  nothing. One absolute URL serves both.
+-->
+<img src="https://raw.githubusercontent.com/huyghebaertthomas/isobin/main/isobin.gif" alt="Eight styles and eight arrangements, cycling" width="576">
+
+*Every frame above is one `<Isobin config={…} />` — only the config changes.*
+
 ```bash
 npm install isobin
 ```

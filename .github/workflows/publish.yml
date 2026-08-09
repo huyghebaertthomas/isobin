@@ -1,0 +1,57 @@
+name: publish
+
+# Publishes to npm when a GitHub Release is published, and stamps the package
+# with provenance: a signed, public record of which repository, which commit and
+# which workflow run produced the tarball. That record is what npmjs.com renders
+# as the green "Built and signed on GitHub Actions" panel, linking back here.
+#
+# No NPM_TOKEN. npm's trusted publishing takes a short-lived OIDC token minted
+# by GitHub for this one workflow run, which is why `id-token: write` below is
+# not optional — without it npm has nothing to verify and the publish fails.
+# See .github/PUBLISHING.md for the one-time setup on npmjs.com.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      # Trusted publishing needs a newer npm than any Node ships with.
+      - name: Use an npm that can do trusted publishing
+        run: npm install -g npm@latest
+
+      - run: npm ci
+      - run: npm test
+
+      # A release tagged v0.2.0 against a package.json still saying 0.1.0 would
+      # otherwise fail deep inside `npm publish`, or quietly republish the old
+      # version. Say so here instead, where the message is readable.
+      - name: Check the tag matches package.json
+        if: github.event_name == 'release'
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::Release tag $GITHUB_REF_NAME does not match package.json version $version."
+            echo "Bump the version, commit, and tag again."
+            exit 1
+          fi
+          echo "Publishing $version"
+
+      - run: npm publish --access public

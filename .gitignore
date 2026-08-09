@@ -1,6 +1,10 @@
 node_modules/
 dist/
 demo/dist/
+
+# the project that films isobin.gif — kept out of the repo on purpose.
+# The GIF it produces is committed; the machinery that makes it is not.
+promo/
 .vite/
 *.tsbuildinfo
 *.local
