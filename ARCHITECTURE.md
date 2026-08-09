@@ -38,6 +38,12 @@ npm test           # builds, then checks geometry, config and the built package
 npm run build      # dist/ — bundles and declarations
 ```
 
+The test script names its four files rather than globbing them. A glob is only
+expanded by Node itself from v22, and letting Node discover tests on its own
+sweeps up `test/types/consumer.ts` — which is a fixture for the type checker,
+not a test, and which older Node cannot even parse. Add a test file and add it
+to the list.
+
 ## Ids, and why scenes need names
 
 Everything the scene refers to by url — clip paths, frost backdrops, one

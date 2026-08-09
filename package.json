@@ -55,7 +55,7 @@
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
     "pretest": "npm run build",
-    "test": "node --test \"test/*.test.js\" && npm run check:types",
+    "test": "node --test test/config.test.js test/demo.test.js test/render.test.js test/scene.test.js && npm run check:types",
     "check:types": "tsc -p test/types/tsconfig.json",
     "dev": "vite --config demo/vite.config.js",
     "demo:build": "vite build --config demo/vite.config.js",
