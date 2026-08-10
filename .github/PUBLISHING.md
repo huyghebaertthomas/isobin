@@ -47,17 +47,60 @@ anyone can verify it with `npm audit signatures`.
 
 ## Releasing a version
 
+Ordinary work is just work. Commit and push as often as you like — none of it
+reaches npm:
+
 ```bash
-npm version patch          # or minor / major — writes package.json and tags
-git push --follow-tags
+git push
 ```
 
-Then create a GitHub Release for that tag (*Releases* → *Draft a new release* →
-pick the tag → *Publish release*). Publishing the release starts the workflow,
-which runs the tests, checks the tag against `package.json`, and publishes.
+A release is a separate, deliberate act, and it is one command:
+
+```bash
+npm version patch          # or minor / major
+```
+
+That runs the tests, writes `package.json`, commits, tags `vX.Y.Z`, and pushes
+the commit and the tag — `preversion` and `postversion` in `package.json` are
+what add the first and last of those. Pushing the tag starts `publish.yml`,
+which tests again on a clean checkout, checks the tag against `package.json`,
+publishes to npm with provenance, and writes the GitHub Release from the tag.
+
+So: **you never create a release or a tag by hand.** The only thing you choose
+is `patch`, `minor` or `major`.
+
+- `patch` — fixes, docs, anything that cannot break a caller (0.1.1 → 0.1.2)
+- `minor` — new features that do not break a caller (0.1.1 → 0.2.0)
+- `major` — anything that breaks a caller (0.1.1 → 1.0.0)
+
+Below 1.0.0 the rules bend: while the leading zero is there, a `minor` bump is
+the conventional place for breaking changes, which is why `motion.ambient`
+being removed is 0.2.0 and not 1.0.0.
 
 `workflow_dispatch` is there too, so the workflow can be run by hand from the
-*Actions* tab if a release is ever published without one.
+*Actions* tab if a run needs repeating.
+
+### If it goes wrong
+
+`npm version` refuses to run on a dirty tree, and its own commit is the point of
+it, not a side effect — the version bump *is* a commit and a tag, so it can be
+found again. If you want the bump without either, `npm version patch
+--no-git-tag-version`.
+
+The one failure that bites is a **tag that already exists**: npm bumps and
+commits, then fails at the tag, leaving the commit behind. That happens after an
+attempt was undone with `git reset` — which moves the branch but leaves the tag
+pointing where it was. Undo the whole thing, not half of it:
+
+```bash
+git reset --hard HEAD~1    # drop the version commit
+git tag -d v0.1.2          # and the tag it made
+```
+
+A tag that was already pushed needs `git push origin :refs/tags/v0.1.2` as well.
+
+A version published to npm cannot be replaced — publishing 0.1.2 twice is an
+error, even if the first one was wrong. The fix is always to publish 0.1.3.
 
 ## Falling back to a token
 
