@@ -1,6 +1,6 @@
 {
   "name": "isobin",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "2.5D isometric SVG digital twins of storage and inventory systems — describe your shelving as config, then open and close bins by id from code",
   "keywords": [
     "isometric",
