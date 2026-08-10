@@ -1,37 +1,46 @@
 /**
- * The three bin types the physical system ships with.
+ * Named bundles of bin defaults — presets, not a fixed menu.
  *
- * `perRow` is a compartment/bin COUNT, not a width: a row is always filled
- * exactly, so bin width falls out of `innerWidth / perRow`. Divider positions
- * work the same way — `compartments` is a count, and the dividers are packed
- * from it so every compartment comes out equal.
+ * A type is only where a bin's defaults come from. Any row or bin may override
+ * any of it, and a bin need not have a type at all: `{ span: 3, id: "L" }` is a
+ * perfectly good bin. Add your own types here for the sizes your system
+ * actually uses, or skip types entirely and describe each row's bins directly.
  *
- *   axis "x" → divider runs front-to-back, splitting the bin left/right
- *   axis "z" → divider runs left-to-right, splitting the bin depth-wise
+ * `perRow` is the count a plain `{ type: "small" }` row fills itself with. It
+ * is not a width — a row is always filled exactly, so bin width falls out of
+ * how many slots the row's contents add up to.
+ *
+ * A divider is described by what it splits, not by the axis it lies on:
+ *
+ *   { split: "width", into: 3 }   three compartments, left to right
+ *   { split: "depth", into: 2 }   two compartments, front to back
+ *
+ * Whatever a type says, a row or a bin can say `divider: false` and have none —
+ * a divider is a piece of plastic you can take out.
  */
 export const binTypes = {
   small: {
     label: "Small",
     /** row units of height this bin occupies */
     rowUnits: 1,
-    /** how many of these fit across one row */
+    /** how many of these a plain row of this type holds */
     perRow: 5,
     /** furthest this bin can slide out, regardless of binPullFraction */
     maxPull: 1.2,
-    divider: { axis: "z", compartments: 2, optional: true, fittedByDefault: true },
+    divider: { split: "depth", into: 2 },
   },
   medium: {
     label: "Medium",
     rowUnits: 1,
     perRow: 2,
     maxPull: 1.2,
-    divider: { axis: "x", compartments: 2, optional: true, fittedByDefault: true },
+    divider: { split: "width", into: 2 },
   },
   large: {
     label: "Large",
     rowUnits: 2,
     perRow: 1,
     maxPull: 1.45,
-    divider: { axis: "x", compartments: 3, optional: false, fittedByDefault: true },
+    divider: { split: "width", into: 3 },
   },
 };

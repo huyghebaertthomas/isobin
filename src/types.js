@@ -19,15 +19,62 @@
  */
 
 /**
+ * How a bin is divided, or `false` for not at all.
+ *
+ * Said in terms of what the divider splits rather than the axis it lies on:
+ * `{ split: "width", into: 3 }` is three compartments left to right. A bare
+ * number keeps whatever direction the bin type uses and changes only the count,
+ * and a bare direction means two compartments that way.
+ *
+ * A bin's own beats its row's beats its type's, and `false` at any level wins —
+ * every divider can be left out, whatever the type says.
+ *
+ * @typedef {{ split?: "width"|"depth", into?: number }|number|"width"|"depth"|boolean} DividerSpec
+ */
+
+/**
+ * One bin in a row, or a bare bin type name.
+ *
+ * Everything is optional: `{}` is a bin one slot wide, named by its position,
+ * with whatever its row's type gives it. `span` is how many of the row's slots
+ * it takes, which is how unequal widths are expressed — a 3 and a 4 in the same
+ * row make sevenths.
+ *
+ * @typedef {object} BinSpec
+ * @property {number} [span] slots this bin takes across the row (default 1)
+ * @property {string} [type] key into `binTypes`; defaults to the row's
+ * @property {string} [id] what this bin is called. Beats every other naming rule.
+ * @property {DividerSpec} [divider]
+ * @property {string} [label] the readable description, for screen readers and
+ *   `bin()` reports; one is described from the position by default
+ * @property {unknown} [data] anything of your own; handed back untouched on the bin
+ */
+
+/**
+ * Space in a row with no bin in it — the shelf runs on underneath, and the bins
+ * either side are unaffected.
+ *
+ * @typedef {{ gap: number|true }} GapSpec
+ */
+
+/**
  * One row of a cabinet, or just the bin type's name for a single plain row.
  *
+ * A row is either plain — one type across equal slots — or a list of what is in
+ * it. `bins` is the general form and `type`/`count` the shorthand; a row that
+ * gives both uses `type` as the default for the bins it lists.
+ *
  * @typedef {object} RowSpec
- * @property {string} type key into `binTypes`
- * @property {number} [repeat] how many identical rows to emit (default 1)
+ * @property {string} [type] key into `binTypes`
  * @property {number} [count] bins across the row; defaults to the type's `perRow`.
  *   The row is always filled exactly, so this widens or narrows the bins.
- * @property {boolean} [divided] fit the compartment divider; only honoured when
- *   the bin type marks its divider optional
+ * @property {Array<BinSpec|GapSpec|string|null>} [bins] what is in the row, left
+ *   to right. Each entry takes `span` slots and the row is as many slots as they
+ *   add up to, so widths are proportions rather than measurements.
+ * @property {number} [repeat] how many identical rows to emit (default 1)
+ * @property {number} [height] row units tall; defaults to the tallest bin type in it
+ * @property {DividerSpec} [divider] the default for every bin in this row
+ * @property {boolean} [divided] older spelling of `divider: false`
  * @property {string} [id] names the row: its bins become `id-0`, `id-1`… , or
  *   just `id` when the row holds one. Cannot be combined with `repeat`.
  * @property {string[]} [ids] one id per bin, in order across the row. Give every
@@ -82,13 +129,15 @@
  */
 
 /**
+ * A named bundle of bin defaults. Presets, not a fixed menu: add your own, or
+ * describe each bin directly and use none.
+ *
  * @typedef {object} BinTypeSpec
  * @property {string} [label]
- * @property {number} rowUnits row units of height this bin occupies
- * @property {number} perRow how many fit across one row
+ * @property {number} [rowUnits] row units of height this bin occupies (default 1)
+ * @property {number} [perRow] how many a plain row of this type holds
  * @property {number} [maxPull] furthest it can slide out, whatever `binPullFraction` says
- * @property {{ axis: "x"|"z", compartments: number, optional?: boolean,
- *   fittedByDefault?: boolean }} [divider]
+ * @property {DividerSpec} [divider] the default, which any row or bin may override
  */
 
 /**
@@ -197,8 +246,10 @@
  * @typedef {object} SceneBin
  * @property {string} id
  * @property {string} organizerId
- * @property {string} type the bin type's key
+ * @property {string|null} type the bin type's key, if it has one
  * @property {number} pull how far it slides, in world units
+ * @property {{ at: number, span: number }} slot where it sits across its row, in slots
+ * @property {unknown} [data] whatever the layout hung on this bin
  */
 
 /**
@@ -213,11 +264,13 @@
  * @property {string} id
  * @property {string} organizerId
  * @property {string} [organizerName]
- * @property {string} type the bin type's key
+ * @property {string|null} type the bin type's key, if it has one
  * @property {number} row which row it is in, counting from the top
- * @property {number} index its place across that row, from the left
+ * @property {number} index its place across that row, from the left, counting
+ *   bins only — a gap is not a bin and does not take a number
  * @property {string} label a readable description, e.g. "Organizer 1 · row 3 · bin 2"
  * @property {boolean} open
+ * @property {unknown} [data] whatever the layout hung on this bin
  * @property {{ x: number, y: number, width: number, height: number }} screen
  */
 

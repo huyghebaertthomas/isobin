@@ -87,6 +87,8 @@ function describe(bin, open) {
     index: bin.index,
     label: bin.label,
     open: open.includes(bin.id),
+    /** whatever the layout hung on this bin, so a caller gets it back here */
+    data: bin.data,
     screen: {
       x: bin.screen.x,
       y: bin.screen.y,

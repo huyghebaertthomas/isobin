@@ -27,8 +27,24 @@ export const wall = {
         rows: [
           { type: "small", ids: ["D-1N4148", "D-1N4007", "D-ZENER", "LED-R", "LED-G"] },
           { type: "small", ids: ["Q-2N3904", "Q-2N3906", "Q-BC547", "Q-IRLZ44", "Q-TIP120"] },
-          { type: "medium", ids: ["IC-555", "IC-OPAMP"] },
-          { type: "large", id: "BULK" },
+
+          // a row that no arrangement of equal bins could describe: two thirds
+          // for the DIP tubes, a third for everything else, and the small one
+          // split the other way because op-amps stand on end in it
+          {
+            type: "small",
+            bins: [
+              { span: 4, id: "IC-555", divider: { split: "width", into: 3 } },
+              { span: 3, id: "IC-OPAMP", divider: "depth" },
+            ],
+          },
+
+          // and a shelf with its right-hand end kept clear, because the reel of
+          // solder lives there and it is not a bin
+          {
+            type: "large",
+            bins: [{ span: 3, id: "BULK", divider: false }, { gap: 2 }],
+          },
         ],
       },
     ],

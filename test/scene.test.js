@@ -168,25 +168,75 @@ test("dividers come from a compartment count and split the bin equally", () => {
   near(far.at - near_.at, (inner - dividerThickness * 2) / 3 + dividerThickness);
 });
 
-test("an optional divider can be left out row by row", () => {
-  const bare = buildScene(
-    resolveConfig({
-      layout: {
-        organizers: [{ id: "X", name: "X", rows: [{ type: "small", divided: false }] }],
-      },
-    })
-  );
-  assert.equal(bare.bins[0].shape.dividers.length, 0);
+test("any divider can be left out, and any bin can have its own", () => {
+  const dividers = (rows) =>
+    buildScene(resolveConfig({ layout: { organizers: [{ id: "X", name: "X", rows }] } })).bins.map(
+      (bin) => bin.shape.dividers.length
+    );
 
-  // large bins are not optional, so asking still leaves them divided
-  const large = buildScene(
+  // a divider is a piece of plastic you can take out, whatever the type says
+  assert.deepEqual(dividers([{ type: "small", divided: false }]), [0, 0, 0, 0, 0]);
+  assert.deepEqual(dividers([{ type: "large", divider: false }]), [0]);
+  assert.deepEqual(dividers([{ type: "large" }]), [2], "and is fitted when nobody objects");
+
+  // a count on its own keeps the type's direction and changes only how many
+  assert.deepEqual(dividers([{ type: "large", divider: 4 }]), [3]);
+
+  // and the most specific one wins: the bin over the row over the type
+  assert.deepEqual(
+    dividers([{ type: "small", count: 3, divider: 3, bins: undefined }]),
+    [2, 2, 2],
+    "a row sets its own"
+  );
+  assert.deepEqual(
+    dividers([
+      {
+        type: "small",
+        bins: [{ divider: false }, {}, { divider: { split: "width", into: 5 } }],
+      },
+    ]),
+    [0, 1, 4]
+  );
+});
+
+test("a divider is described by what it splits, not by an axis", () => {
+  const bins = buildScene(
     resolveConfig({
       layout: {
-        organizers: [{ id: "X", name: "X", rows: [{ type: "large", divided: false }] }],
+        organizers: [
+          {
+            id: "X",
+            name: "X",
+            rows: [
+              {
+                bins: [
+                  { id: "wide", divider: { split: "width", into: 2 } },
+                  { id: "deep", divider: { split: "depth", into: 2 } },
+                ],
+              },
+            ],
+          },
+        ],
       },
     })
+  ).binsById;
+
+  // a width split puts its panel across the bin's width, so the panel itself
+  // runs front to back — the two are perpendicular, and mixing them up is the
+  // whole reason the vocabulary changed
+  assert.equal(bins.get("wide").divider.axis, "x");
+  assert.equal(bins.get("deep").divider.axis, "z");
+  assert.equal(bins.get("wide").shape.dividers.length, 1);
+
+  // the older vocabulary still resolves to the same thing
+  const legacy = buildScene(
+    resolveConfig({
+      binTypes: { odd: { rowUnits: 1, perRow: 1, divider: { axis: "x", compartments: 3 } } },
+      layout: { organizers: [{ id: "X", name: "X", rows: ["odd"] }] },
+    })
   );
-  assert.equal(large.bins[0].shape.dividers.length, 2);
+  assert.equal(legacy.bins[0].divider.split, "width");
+  assert.equal(legacy.bins[0].divider.into, 3);
 });
 
 test("row count overrides re-slice the row without leaving a gap", () => {

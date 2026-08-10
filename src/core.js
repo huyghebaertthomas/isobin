@@ -36,6 +36,12 @@ export {
 export { buildScene } from "./models/scene.js";
 
 /**
+ * Shorthands for writing a layout by hand. Each returns the plain object you
+ * would otherwise have typed, so a layout built with them is still data.
+ */
+export { bin, gap, row } from "./models/authoring.js";
+
+/**
  * Applying a style to settings somebody is already editing, which is a
  * different job from `resolveConfig({ style })` — see `lib/styles.js`.
  */

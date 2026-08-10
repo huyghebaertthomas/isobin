@@ -101,7 +101,7 @@ carrying no click handlers.
 
 Nothing is positioned by hand — no coordinate is authored anywhere. Rows stack
 downward by their own height, each row divides the cabinet's inner width into
-equal slots, cabinets are placed left to right from an origin and a gap, and the
+slots, cabinets are placed left to right from an origin and a gap, and the
 viewBox is measured from the result. So a wall is entirely a matter of listing
 what is in it:
 
@@ -116,19 +116,97 @@ layout: {
 }
 ```
 
-A row is `{ type, repeat?, count?, divided? }`, or just the type name as a
-string:
-
 | field | meaning |
 | --- | --- |
 | `type` | key into `binTypes` — `small`, `medium` or `large` as shipped |
+| `count` | bins across the row; defaults to the type's `perRow`. The row is always filled exactly, so this widens or narrows the bins |
+| `bins` | what is in the row, one entry at a time — see below |
 | `repeat` | emit this many identical rows (default 1) |
-| `count` | bins across the row; defaults to the type's `perRow`. The row is always filled exactly, so this widens or narrows the bins rather than leaving a gap |
-| `divided` | fit the compartment divider? Only honoured where the type marks its divider `optional` |
+| `height` | row units tall; defaults to the tallest bin type in the row |
+| `divider` | the default divider for every bin in the row |
 | `id` / `ids` | what the bins are called — see below |
 
 A cabinet may also carry `innerWidth`, or a `hardware` block, to deviate from
 the rest of the wall.
+
+### Rows that are not all one size
+
+`type` and `count` are a shorthand for the common row. The general form lists
+what is in the row, and each entry says how many slots it takes. **The row is
+however many slots its contents add up to**, so widths are proportions rather
+than measurements — a 3 and a 4 make sevenths, and nothing says seven:
+
+```js
+{ bins: [{ span: 3, id: "L" }, { span: 4, id: "R" }] }
+```
+
+Change the 4 to a 5 and the row re-proportions itself. It cannot overflow, and
+it cannot leave a strip of the cabinet unaccounted for.
+
+An entry can also be a hole, for the part of a shelf that holds something which
+is not a bin at all:
+
+```js
+{ bins: [{ id: "A" }, { gap: 2 }, { id: "B" }] }
+```
+
+A gap takes up its share of the row and leaves nothing behind — the shelf runs
+on underneath it, the bins either side are unaffected, and it is not a bin: it
+gets no id, takes no index, and the arrow keys pass over it.
+
+A bin entry is all optional. `{}` is a bin one slot wide named by its position;
+everything else is a refinement:
+
+| field | meaning |
+| --- | --- |
+| `span` | slots it takes across the row (default 1) |
+| `type` | key into `binTypes`; defaults to the row's, and a bin needs no type at all |
+| `id` | what this bin is called — beats every other naming rule |
+| `divider` | how it is divided, or `false` for not at all |
+| `label` | the readable description, for screen readers and `bin()` reports |
+| `data` | anything of your own; handed back on `bin(id).data` |
+
+A row is as tall as the tallest bin type in it, so types of different heights
+can share one, and `height` overrides that if you would rather say.
+
+If you prefer it read as a shape rather than as a list, `bin()`, `gap()` and
+`row()` are exported from `isobin/core` and return exactly the objects above —
+a layout built with them is still plain data, so it still serialises:
+
+```js
+import { bin, gap, row } from "isobin/core";
+
+rows: [
+  row(bin(3, "L"), gap(), bin(3, "R")),
+  row({ height: 2 }, bin(4, "IC-555"), bin(3, "IC-OPAMP")),
+]
+```
+
+### Dividers
+
+A divider belongs to the bin, not to its type — the type is only where the
+default comes from. Any row or bin may say otherwise, including saying no:
+
+```js
+{ type: "small", divider: false }                        // a whole row, bare
+{ type: "large", divider: 4 }                            // four compartments
+{ bins: [{ divider: { split: "width", into: 3 } }] }     // this bin only
+```
+
+Which way it runs is said in terms of what it splits, because "the x divider"
+tells you nothing while you are looking at a bin:
+
+| spec | means |
+| --- | --- |
+| `{ split: "width", into: 3 }` | three compartments, left to right |
+| `{ split: "depth", into: 2 }` | two compartments, front to back |
+| `3` | three compartments, split whichever way the type splits |
+| `"width"` | two compartments, left and right |
+| `false` | no divider, whatever the type says |
+
+Most specific wins: the bin's over the row's over the type's, and `false`
+anywhere is an answer rather than an absence. There is no such thing as a
+divider you cannot take out.
 
 ### Naming bins
 
@@ -145,6 +223,7 @@ rows: [
   { type: "small", ids: ["R-100", "R-101", "R-102", "R-103", "R-104"] },
   { type: "large", id: "BULK" },        // a row of one takes the name as it is
   { type: "medium", id: "IC" },         // a row of several: IC-0, IC-1, …
+  { bins: [{ id: "L" }, { gap: 1 }, { id: "R" }] },   // or one bin at a time
 ]
 ```
 
@@ -157,8 +236,8 @@ layout: {
 }
 ```
 
-Most specific wins: `ids` beats `id` beats `idFor` beats the positional
-default. `idFor` is a function, so it will not survive `JSON.stringify` — for a
+Most specific wins: a bin's own `id` beats `ids` beats `id` on the row beats
+`idFor` beats the positional default. `idFor` is a function, so it will not survive `JSON.stringify` — for a
 config you mean to serialise, name bins on the rows.
 
 Ids are addresses, so **they must be unique**: two bins with one name throws at
@@ -176,7 +255,7 @@ what differs. Objects merge; **arrays replace**, so `organizers` and
 | `style` | a ready-made look by name, folded in *under* your own overrides |
 | `layout` | the cabinets, their rows, the spacing, and the table they stand on |
 | `hardware` | physical dimensions in world units — row pitch, bin height, depth, frame, wall and divider thickness, how far a bin pulls out |
-| `binTypes` | the bin types and their compartments |
+| `binTypes` | named bundles of bin defaults — height, how many fill a row, how far they pull, how they are divided. Presets, not a fixed menu: add your own, or describe each bin directly and use none |
 | `view` | camera scale, isometric foreshortening, padding around the scene |
 | `motion` | how long a bin takes to slide, and on what easing |
 | `appearance` | surfaces (fill, outline, opacity), the backdrop, the light and its ramp, the bin frost, the named highlights, and how labels are set |

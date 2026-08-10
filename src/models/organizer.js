@@ -3,7 +3,7 @@ import { boardEdges, box, boxCorners, deckEdges, horizontalQuad } from "../lib/c
 import { paintOrder } from "../lib/ordering.js";
 import { assertUniqueIds, binNamer } from "./binId.js";
 import { expandRows } from "./rows.js";
-import { fittedDivider, pullDistance } from "./binType.js";
+import { pullDistance } from "./binType.js";
 import { buildBinShape } from "./binShape.js";
 
 /**
@@ -24,8 +24,8 @@ export function buildOrganizer(def, ctx) {
   const hw = { ...ctx.hardware, ...(def.hardware ?? {}) };
   const innerWidth = def.innerWidth ?? ctx.innerWidth;
 
-  const rows = expandRows(def.rows, ctx.binTypes);
-  const heightUnits = rows.reduce((sum, row) => sum + row.type.rowUnits, 0);
+  const rows = expandRows(def.rows, ctx.binTypes, `Cabinet ${def.id}`);
+  const heightUnits = rows.reduce((sum, row) => sum + row.units, 0);
 
   // the bottom row is the one without a shelf, so the cabinet does without
   // that board's thickness as well and every row opens by the same amount
@@ -55,7 +55,7 @@ export function buildOrganizer(def, ctx) {
     const shelved = rowIndex < rows.length - 1;
     const deck = shelved ? hw.shelfThickness : 0;
 
-    const rowHeight = row.type.rowUnits * hw.rowHeight - (shelved ? 0 : floorBoard);
+    const rowHeight = row.units * hw.rowHeight - (shelved ? 0 : floorBoard);
     cursor -= rowHeight;
 
     // a board of no thickness is nothing to draw, only three coincident edges
@@ -79,42 +79,51 @@ export function buildOrganizer(def, ctx) {
       });
     }
 
-    // space between, not around: the gaps fall between bins, so the outermost
-    // bins sit flush against the cabinet's inner walls
-    const binWidth = (innerWidth - hw.binGap * (row.count - 1)) / row.count;
-    const binHeight = hw.binHeight + (row.type.rowUnits - 1) * hw.rowHeight;
+    // Space between, not around: the gaps fall between slots, so the outermost
+    // bins sit flush against the cabinet's inner walls. A slot spanning three
+    // is as wide as three unit slots plus the two gaps it swallows, which is
+    // what makes a 3 and a 4 read as thirds and fours of the same seven.
+    const unit = (innerWidth - hw.binGap * (row.span - 1)) / row.span;
+    const widthOf = (span) => unit * span + hw.binGap * (span - 1);
+    const binHeight = hw.binHeight + (row.units - 1) * hw.rowHeight;
 
-    const divider = fittedDivider(row.type, row.divided);
     const rowBins = [];
     const nameBin = binNamer(row, { organizerId: def.id, rowIndex, idFor: ctx.idFor });
+    let left = body.x + hw.frame;
 
-    for (let i = 0; i < row.count; i++) {
-      const outer = box(
-        body.x + hw.frame + i * (binWidth + hw.binGap),
-        cursor + deck,
-        body.z + hw.binFrontInset,
-        binWidth,
-        binHeight,
-        binDepth
-      );
+    for (const slot of row.slots) {
+      const width = widthOf(slot.span);
 
-      const pull = pullDistance(row.type, outer.d, hw.binPullFraction);
+      // a gap takes up its width and leaves nothing behind: the shelf runs on
+      // underneath it, which is the whole point of asking for one
+      if (slot.bin) {
+        const outer = box(left, cursor + deck, body.z + hw.binFrontInset, width, binHeight, binDepth);
+        const pull = pullDistance(slot.bin.type, outer.d, hw.binPullFraction);
+        const divider = slot.bin.divider;
 
-      rowBins.push({
-        id: nameBin(i),
-        kind: "bin",
-        organizerId: def.id,
-        organizerName: def.name,
-        type: row.typeName,
-        row: rowIndex,
-        index: i,
-        label: `${def.name ?? def.id} · row ${rowIndex + 1} · bin ${i + 1}`,
-        box: outer,
-        divider,
-        pull,
-        shape: buildBinShape(outer, divider, hw),
-        screen: travelBounds(outer, pull, ctx.projection),
-      });
+        rowBins.push({
+          id: nameBin(slot.bin),
+          kind: "bin",
+          organizerId: def.id,
+          organizerName: def.name,
+          type: slot.bin.typeName,
+          row: rowIndex,
+          index: slot.bin.index,
+          label:
+            slot.bin.label ??
+            `${def.name ?? def.id} · row ${rowIndex + 1} · bin ${slot.bin.index + 1}`,
+          data: slot.bin.data,
+          box: outer,
+          divider,
+          pull,
+          /** where it sits across the row, in slots — what the arrow keys steer by */
+          slot: { at: (left - body.x - hw.frame) / (unit + hw.binGap), span: slot.span },
+          shape: buildBinShape(outer, divider, hw),
+          screen: travelBounds(outer, pull, ctx.projection),
+        });
+      }
+
+      left += width + hw.binGap;
     }
 
     bins.push(...rowBins);
@@ -123,6 +132,7 @@ export function buildOrganizer(def, ctx) {
       type: row.typeName,
       y: cursor,
       height: rowHeight,
+      span: row.span,
       binIds: rowBins.map((b) => b.id),
     });
   });

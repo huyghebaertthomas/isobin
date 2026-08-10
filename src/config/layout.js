@@ -1,17 +1,20 @@
 /**
  * Which cabinets exist, and what goes in them.
  *
- * A row is `{ type, repeat?, count?, divided?, id? }`, or just the type name as
- * a bare string:
+ * A row is either a plain one — a bin type and a count — or a list of what is
+ * in it. A bare string is the shortest plain row there is.
  *
- *   type     — key into `config/binTypes.js`
- *   repeat   — how many identical rows to emit (default 1)
+ *   type     — key into `config/binTypes.js`, for a row of one kind of bin
  *   count    — bins across the row; defaults to the bin type's `perRow`.
- *              Whatever the count, the row is divided into equal widths, so
- *              this widens or narrows the bins rather than leaving a gap.
- *   divided  — fit the compartment divider? Defaults to the bin type's
- *              `divider.fittedByDefault`; only honoured when the type marks
- *              its divider `optional`.
+ *              The row is always filled exactly, so this widens or narrows the
+ *              bins rather than leaving a gap.
+ *   repeat   — how many identical rows to emit (default 1)
+ *   height   — row units tall; defaults to the tallest bin type in the row
+ *   divider  — the default divider for every bin in the row
+ *   bins     — what is in the row, in order across it. Each entry takes `span`
+ *              slots and the row is however many slots they add up to, so
+ *              `[{ span: 3 }, { span: 4 }]` gives you sevenths. `{ gap: 2 }`
+ *              leaves two slots clear with no bin in them.
  *
  * Rows are listed top to bottom. Cabinets are placed left to right from
  * `origin`, each one `gap` away from the last — no x coordinate is authored.

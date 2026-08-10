@@ -8,7 +8,7 @@
  * follow, or a config shape that rejects a legal config all fail here.
  */
 import { Isobin, buildScene, resolveConfig, styles, stylePreview } from "isobin";
-import { defaultConfig, diff, restyle, styleBranches } from "isobin/core";
+import { bin, defaultConfig, diff, gap, restyle, row, styleBranches } from "isobin/core";
 import { renderToSVG } from "isobin/svg";
 import { openBins, setBins, toggleBin } from "isobin/core";
 import type {
@@ -17,6 +17,7 @@ import type {
   Config,
   IsobinHandle,
   IsobinProps,
+  RowSpec,
   SelectionMode,
   StyleName,
 } from "isobin";
@@ -71,12 +72,53 @@ const props: IsobinProps = {
 const flagged: IsobinProps = { highlight: ["A-0-0"] };
 const named: Config = {
   layout: {
-    idFor: ({ organizerId, row, index }) => `${organizerId}/${row}/${index}`,
+    idFor: (at) => `${at.organizerId}/${at.row}/${at.index}`,
     organizers: [
       { id: "A", rows: [{ type: "small", ids: ["R-100"], count: 1 }, { type: "large", id: "BULK" }] },
     ],
   },
 };
+
+/**
+ * A row described bin by bin: unequal spans, a hole, a mixed row, and dividers
+ * decided per bin. The point of checking it here is that a `RowSpec` union that
+ * rejects any of these is a union that would send someone back to the source.
+ */
+const custom: Config = {
+  layout: {
+    organizers: [
+      {
+        id: "W",
+        rows: [
+          "small",
+          { type: "small", count: 7, divider: false },
+          { bins: [{ span: 3, id: "L" }, { span: 4, id: "R" }] },
+          { bins: [{ id: "A" }, { gap: 2 }, { id: "B" }] },
+          {
+            height: 2,
+            bins: [
+              { type: "large", span: 2, divider: { split: "width", into: 3 } },
+              { type: "small", divider: "depth" },
+              { type: "small", divider: 4 },
+              { span: 1, id: "SPARE", label: "Spare", data: { sku: "X-1" } },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+// and the same thing written with the helpers, which produce plain objects
+const helped: RowSpec = row({ height: 2 }, bin(3, "L"), gap(1), bin({ span: 3, type: "small" }));
+const spans: number[] = (helped.bins ?? []).map((entry) =>
+  typeof entry === "object" && entry && "span" in entry ? (entry.span ?? 1) : 1
+);
+const serialised: string = JSON.stringify(helped);
+
+// a bin the layout hung data on comes back with it
+declare const info: BinInfo;
+const carried: unknown = info.data;
 
 /**
  * The handle, as an application would hold it. Typed against the declarations
@@ -124,4 +166,9 @@ export {
   held,
   flagged,
   named,
+  custom,
+  helped,
+  spans,
+  serialised,
+  carried,
 };
